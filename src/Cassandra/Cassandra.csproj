@@ -21,7 +21,8 @@
     <PackageLicenseUrl>https://github.com/datastax/csharp-driver/blob/master/LICENSE</PackageLicenseUrl>
     <RepositoryUrl>https://github.com/datastax/csharp-driver</RepositoryUrl>
     <PackageProjectUrl>https://github.com/datastax/csharp-driver</PackageProjectUrl>
-    <NetStandardImplicitPackageVersion>1.6.0</NetStandardImplicitPackageVersion>
+    <!-- todo (sivukhin, 05.01.2019): 1.6.0 -> 1.6.1: how this change break backward compatibility? -->
+    <NetStandardImplicitPackageVersion>1.6.1</NetStandardImplicitPackageVersion>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Logging" Version="1.0.0" />
