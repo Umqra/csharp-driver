@@ -18,6 +18,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using App.Metrics;
+using Cassandra.MetricsInfrastructure.Abstractions;
+using Cassandra.MetricsInfrastructure.AppMetrics;
+using Cassandra.MetricsInfrastructure.Stub;
 using Cassandra.Serialization;
 
 namespace Cassandra
@@ -53,6 +57,7 @@ namespace Cassandra
         private TypeSerializerDefinitions _typeSerializerDefinitions;
         private bool _noCompact;
         private int _maxSchemaAgreementWaitSeconds = ProtocolOptions.DefaultMaxSchemaAgreementWaitSeconds;
+        private IDriverMetricsProvider _metricsProvider = new DriverMetricsProviderEmptyStub();
 
         /// <summary>
         ///  The pooling options used by this builder.
@@ -650,6 +655,13 @@ namespace Cassandra
             }
 
             _maxSchemaAgreementWaitSeconds = maxSchemaAgreementWaitSeconds;
+            return this;
+        }
+
+        // todo (sivukhin, 05.01.2019): Specification and better naming
+        public Builder WithAppMetrics(IMetricsRoot metricsRoot)
+        {
+            _metricsProvider = new AppMetricsDriverProvider(metricsRoot);
             return this;
         }
 

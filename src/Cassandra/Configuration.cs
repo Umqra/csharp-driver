@@ -16,6 +16,8 @@
 
 using System;
 using System.Collections.Generic;
+using Cassandra.MetricsInfrastructure.Abstractions;
+using Cassandra.MetricsInfrastructure.Stub;
 using Cassandra.Serialization;
 using Cassandra.Tasks;
 using Microsoft.IO;
@@ -42,6 +44,7 @@ namespace Cassandra
         private readonly IAddressTranslator _addressTranslator;
         private readonly RecyclableMemoryStreamManager _bufferPool;
         private readonly HashedWheelTimer _timer;
+        private readonly IDriverMetricsProvider _metricsProvider;
 
         /// <summary>
         ///  Gets the policies set for the cluster.
@@ -141,6 +144,12 @@ namespace Cassandra
             get { return _bufferPool; }
         }
 
+        // todo (sivukhin, 06.01.2019): Add summary?
+        internal IDriverMetricsProvider MetricsProvider
+        {
+            get { return _metricsProvider; }
+        }
+
         /// <summary>
         /// Gets or sets the list of <see cref="TypeSerializer{T}"/> defined.
         /// </summary>
@@ -148,14 +157,15 @@ namespace Cassandra
 
         internal Configuration() :
             this(Policies.DefaultPolicies,
-                 new ProtocolOptions(),
-                 null,
-                 new SocketOptions(),
-                 new ClientOptions(),
-                 NoneAuthProvider.Instance,
-                 null,
-                 new QueryOptions(),
-                 new DefaultAddressTranslator())
+                new ProtocolOptions(),
+                null,
+                new SocketOptions(),
+                new ClientOptions(),
+                NoneAuthProvider.Instance,
+                null,
+                new QueryOptions(),
+                new DefaultAddressTranslator(),
+                new DriverMetricsProviderEmptyStub())
         {
         }
 
@@ -171,16 +181,19 @@ namespace Cassandra
                                IAuthProvider authProvider,
                                IAuthInfoProvider authInfoProvider,
                                QueryOptions queryOptions,
-                               IAddressTranslator addressTranslator)
+                               IAddressTranslator addressTranslator,
+                               IDriverMetricsProvider metricsProvider)
         {
             if (addressTranslator == null)
             {
                 throw new ArgumentNullException("addressTranslator");
             }
+
             if (queryOptions == null)
             {
                 throw new ArgumentNullException("queryOptions");
             }
+
             _policies = policies;
             _protocolOptions = protocolOptions;
             _poolingOptions = poolingOptions;
@@ -195,6 +208,7 @@ namespace Cassandra
             // to create the instance.
             _bufferPool = new RecyclableMemoryStreamManager(16 * 1024, 256 * 1024, ProtocolOptions.MaximumFrameLength);
             _timer = new HashedWheelTimer();
+            _metricsProvider = metricsProvider;
         }
 
         /// <summary>
@@ -206,6 +220,7 @@ namespace Cassandra
             {
                 return _poolingOptions;
             }
+
             _poolingOptions = PoolingOptions.Create(protocolVersion);
             return _poolingOptions;
         }
