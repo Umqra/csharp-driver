@@ -29,19 +29,12 @@ namespace Cassandra.Data.Linq
     /// Represents an IQueryable that returns the first column of the first rows
     /// </summary>
     /// <typeparam name="TEntity"></typeparam>
-    public class CqlScalar<TEntity> : CqlQueryBase<TEntity>
+    public class CqlScalar<TEntity> : CqlQueryBase<TEntity, TEntity>
     {
         internal CqlScalar(Expression expression, ITable table, StatementFactory stmtFactory, PocoData pocoData)
             : base(expression, table, null, stmtFactory, pocoData)
         {
 
-        }
-
-        public new TEntity Execute()
-        {
-            var config = GetTable().GetSession().GetConfiguration();
-            var task = ExecuteAsync();
-            return TaskHelper.WaitToComplete(task, config.ClientOptions.QueryAbortTimeout);
         }
 
         public new CqlScalar<TEntity> SetConsistencyLevel(ConsistencyLevel? consistencyLevel)
@@ -61,30 +54,14 @@ namespace Cassandra.Data.Linq
             object[] _;
             return GetCql(out _);
         }
-
-        public new async Task<TEntity> ExecuteAsync()
+        
+        /// <inheritdoc />
+        internal override TEntity AdaptResult(string cql, RowSet rs)
         {
-            object[] values;
-            string cql = GetCql(out values);
-            var rs = await InternalExecuteAsync(cql, values).ConfigureAwait(false);
-            var result = default(TEntity);
             var row = rs.FirstOrDefault();
             if (row != null)
-            {
-                result = (TEntity)row[0];
-            }
-            return result;
-        }
-
-        public new IAsyncResult BeginExecute(AsyncCallback callback, object state)
-        {
-            return ExecuteAsync().ToApm(callback, state);
-        }
-
-        public new TEntity EndExecute(IAsyncResult ar)
-        {
-            var task = (Task<TEntity>)ar;
-            return task.Result;
+                return (TEntity)row[0];
+            return default(TEntity);
         }
     }
 }

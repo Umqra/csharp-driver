@@ -26,7 +26,7 @@ using Cassandra.Tasks;
 
 namespace Cassandra.Data.Linq
 {
-    public abstract class CqlQueryBase<TEntity> : Statement
+    public abstract class CqlQueryBase<TEntity, TResult> : Statement
     {
         private QueryTrace _queryTrace;
         internal ITable Table { get; private set; }
@@ -105,20 +105,14 @@ namespace Cassandra.Data.Linq
         /// <summary>
         /// Projects a RowSet that is the result of a given cql query into a IEnumerable{TEntity}.
         /// </summary>
-        internal virtual IEnumerable<TEntity> AdaptResult(string cql, RowSet rs)
-        {
-            var mapper = MapperFactory.GetMapper<TEntity>(cql, rs);
-            return rs.Select(mapper);
-        }
+        internal abstract TResult AdaptResult(string cql, RowSet rs);
 
         /// <summary>
         /// Evaluates the Linq query, executes asynchronously the cql statement and adapts the results.
         /// </summary>
-        public async Task<IEnumerable<TEntity>> ExecuteAsync()
+        public async Task<TResult> ExecuteAsync()
         {
-            var visitor = new CqlExpressionVisitor(PocoData, Table.Name, Table.KeyspaceName);
-            object[] values;
-            var cql = visitor.GetSelect(Expression, out values);
+            var cql = GetCql(out var values);
             var rs = await InternalExecuteAsync(cql, values).ConfigureAwait(false);
             return AdaptResult(cql, rs);
         }
@@ -126,7 +120,7 @@ namespace Cassandra.Data.Linq
         /// <summary>
         /// Evaluates the Linq query, executes the cql statement and adapts the results.
         /// </summary>
-        public IEnumerable<TEntity> Execute()
+        public TResult Execute()
         {
             var config = GetTable().GetSession().GetConfiguration();
             var task = ExecuteAsync();
@@ -138,9 +132,9 @@ namespace Cassandra.Data.Linq
             return ExecuteAsync().ToApm(callback, state);
         }
 
-        public IEnumerable<TEntity> EndExecute(IAsyncResult ar)
+        public TResult EndExecute(IAsyncResult ar)
         {
-            var task = (Task<IEnumerable<TEntity>>)ar;
+            var task = (Task<TResult>) ar;
             return task.Result;
         }
     }

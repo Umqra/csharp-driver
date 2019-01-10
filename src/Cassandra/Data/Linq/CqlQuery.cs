@@ -29,7 +29,7 @@ namespace Cassandra.Data.Linq
     /// <summary>
     /// Represents a Linq query that gets evaluated as a CQL statement.
     /// </summary>
-    public class CqlQuery<TEntity> : CqlQueryBase<TEntity>, IQueryable<TEntity>, IOrderedQueryable
+    public class CqlQuery<TEntity> : CqlQueryBase<TEntity, IEnumerable<TEntity>>, IQueryable<TEntity>, IOrderedQueryable
     {
         internal CqlQuery()
         {
@@ -104,15 +104,20 @@ namespace Cassandra.Data.Linq
             return visitor.GetSelect(Expression, out values);
         }
 
+        /// <inheritdoc />
+        internal override IEnumerable<TEntity> AdaptResult(string cql, RowSet rs)
+        {
+            var mapper = MapperFactory.GetMapper<TEntity>(cql, rs);
+            return rs.Select(mapper);
+        }
+
         /// <summary>
         /// Asynchronously executes the query and returns a task of a page of results
         /// </summary>
         public async Task<IPage<TEntity>> ExecutePagedAsync()
         {
             SetAutoPage(false);
-            var visitor = new CqlExpressionVisitor(PocoData, Table.Name, Table.KeyspaceName);
-            object[] values;
-            var cql = visitor.GetSelect(Expression, out values);
+            var cql = GetCql(out var values);
             var rs = await InternalExecuteAsync(cql, values).ConfigureAwait(false);
             var mapper = MapperFactory.GetMapper<TEntity>(cql, rs);
             return new Page<TEntity>(rs.Select(mapper), PagingState, rs.PagingState);

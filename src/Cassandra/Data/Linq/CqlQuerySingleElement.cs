@@ -14,16 +14,12 @@
 //   limitations under the License.
 //
 
-using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Threading.Tasks;
-using Cassandra.Tasks;
 
 namespace Cassandra.Data.Linq
 {
-    public class CqlQuerySingleElement<TEntity> : CqlQueryBase<TEntity>
+    public class CqlQuerySingleElement<TEntity> : CqlQueryBase<TEntity, TEntity>
     {
         internal CqlQuerySingleElement(Expression expression, CqlQuery<TEntity> source)
             : base(expression, source.Table, source.MapperFactory, source.StatementFactory, source.PocoData)
@@ -55,31 +51,11 @@ namespace Cassandra.Data.Linq
             return this;
         }
 
-        public new async Task<TEntity> ExecuteAsync()
+        /// <inheritdoc />
+        internal override TEntity AdaptResult(string cql, RowSet rs)
         {
-            var rs = await base.ExecuteAsync().ConfigureAwait(false);
-            return rs.FirstOrDefault();
-        }
-
-        public new IAsyncResult BeginExecute(AsyncCallback callback, object state)
-        {
-            return ExecuteAsync().ToApm(callback, state);
-        }
-
-        public new TEntity EndExecute(IAsyncResult ar)
-        {
-            var task = (Task<TEntity>)ar;
-            return task.Result;
-        }
-
-        /// <summary>
-        /// Evaluates the Linq query, executes the cql statement and returns the first result.
-        /// </summary>
-        public new TEntity Execute()
-        {
-            var config = GetTable().GetSession().GetConfiguration();
-            var task = ExecuteAsync();
-            return TaskHelper.WaitToComplete(task, config.ClientOptions.QueryAbortTimeout);
+            var mapper = MapperFactory.GetMapper<TEntity>(cql, rs);
+            return rs.Select(mapper).FirstOrDefault();
         }
     }
 }
