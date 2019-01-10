@@ -8,7 +8,7 @@ namespace Cassandra.Data.Linq
     /// <summary>
     /// Represents an INSERT/UPDATE/DELETE command with support for Lightweight transactions.
     /// </summary>
-    public class CqlConditionalCommand<TEntity>: CqlCommand
+    public class CqlConditionalCommand<TEntity> : CqlCommand
     {
         private readonly MapperFactory _mapperFactory;
         private readonly CqlCommand _origin;
@@ -32,13 +32,8 @@ namespace Cassandra.Data.Linq
         /// </summary>
         public new async Task<AppliedInfo<TEntity>> ExecuteAsync()
         {
-            object[] values;
-            var cql = GetCql(out values);
-            var session = GetTable().GetSession();
-            var stmt = await StatementFactory.GetStatementAsync(session, Cql.New(cql, values)).ConfigureAwait(false);
-            this.CopyQueryPropertiesTo(stmt);
-            var rs = await session.ExecuteAsync(stmt).ConfigureAwait(false);
-            return AppliedInfo<TEntity>.FromRowSet(_mapperFactory, cql, rs);
+            var rowSetAndCqlQuery = await ExecuteAndReturnCqlQueryAsync().ConfigureAwait(false);
+            return AppliedInfo<TEntity>.FromRowSet(_mapperFactory, rowSetAndCqlQuery.Item2, rowSetAndCqlQuery.Item1);
         }
 
         /// <summary>

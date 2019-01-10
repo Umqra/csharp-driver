@@ -148,20 +148,24 @@ namespace Cassandra.Data.Linq
             return Table;
         }
 
-        /// <summary>
-        /// Evaluates the Linq command and executes asynchronously the cql statement.
-        /// </summary>
-        public async Task<RowSet> ExecuteAsync()
+        protected async Task<Tuple<RowSet, string>> ExecuteAndReturnCqlQueryAsync()
         {
-            object[] values;
-            var cqlQuery = GetCql(out values);
+            var cqlQuery = GetCql(out var values);
             var session = GetTable().GetSession();
             var stmt = await _statementFactory.GetStatementAsync(session, Cql.New(cqlQuery, values))
                                               .ConfigureAwait(false);
             this.CopyQueryPropertiesTo(stmt);
             var rs = await session.ExecuteAsync(stmt).ConfigureAwait(false);
             QueryTrace = rs.Info.QueryTrace;
-            return rs;
+            return Tuple.Create(rs, cqlQuery);
+        }
+
+        /// <summary>
+        /// Evaluates the Linq command and executes asynchronously the cql statement.
+        /// </summary>
+        public async Task<RowSet> ExecuteAsync()
+        {
+            return (await ExecuteAndReturnCqlQueryAsync().ConfigureAwait(false)).Item1;
         }
 
         /// <summary>
