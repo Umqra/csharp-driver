@@ -16,6 +16,7 @@
 
 using System;
 using System.Collections.Generic;
+using Cassandra.Metrics;
 using Cassandra.Serialization;
 using Cassandra.Tasks;
 using Microsoft.IO;
@@ -42,6 +43,7 @@ namespace Cassandra
         private readonly IAddressTranslator _addressTranslator;
         private readonly RecyclableMemoryStreamManager _bufferPool;
         private readonly HashedWheelTimer _timer;
+        private readonly IDriverMetricsProvider _driverMetricsProvider;
 
         /// <summary>
         ///  Gets the policies set for the cluster.
@@ -133,6 +135,11 @@ namespace Cassandra
             get { return _timer; }
         }
 
+        internal IDriverMetricsProvider DriverMetricsProvider
+        {
+            get { return _driverMetricsProvider; }
+        }
+
         /// <summary>
         /// Shared buffer pool
         /// </summary>
@@ -171,7 +178,8 @@ namespace Cassandra
                                IAuthProvider authProvider,
                                IAuthInfoProvider authInfoProvider,
                                QueryOptions queryOptions,
-                               IAddressTranslator addressTranslator)
+                               IAddressTranslator addressTranslator,
+                               IDriverMetricsProvider driverMetricsProvider = null)
         {
             if (addressTranslator == null)
             {
@@ -195,6 +203,7 @@ namespace Cassandra
             // to create the instance.
             _bufferPool = new RecyclableMemoryStreamManager(16 * 1024, 256 * 1024, ProtocolOptions.MaximumFrameLength);
             _timer = new HashedWheelTimer();
+            _driverMetricsProvider = driverMetricsProvider ?? new EmptyDriverMetricsProvider();
         }
 
         /// <summary>

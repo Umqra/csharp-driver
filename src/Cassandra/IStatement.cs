@@ -16,6 +16,7 @@
 
 using System;
 using System.Collections.Generic;
+using Cassandra.Metrics;
 
 namespace Cassandra
 {
@@ -230,5 +231,9 @@ namespace Cassandra
         /// </para>
         /// </summary>
         IStatement SetIdempotence(bool value);
+        
+        IDriverMetricsProvider StatementMetricsProvider { get; }
+
+        IStatement SetMetricsProvider(IDriverMetricsProvider driverMetricsProvider);
     }
 }

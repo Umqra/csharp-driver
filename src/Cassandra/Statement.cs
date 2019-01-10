@@ -17,6 +17,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using Cassandra.Metrics;
 using Cassandra.Requests;
 
 namespace Cassandra
@@ -240,6 +241,14 @@ namespace Cassandra
         public IStatement SetIdempotence(bool value)
         {
             _isIdempotent = value ? 1 : 0;
+            return this;
+        }
+
+        public IDriverMetricsProvider StatementMetricsProvider { get; private set; } = new EmptyDriverMetricsProvider();
+
+        public IStatement SetMetricsProvider(IDriverMetricsProvider driverMetricsProvider)
+        {
+            StatementMetricsProvider = driverMetricsProvider;
             return this;
         }
 

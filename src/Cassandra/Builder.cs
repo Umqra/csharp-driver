@@ -18,6 +18,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using App.Metrics;
+using Cassandra.Metrics;
 using Cassandra.Serialization;
 
 namespace Cassandra
@@ -52,6 +54,7 @@ namespace Cassandra
         private ProtocolVersion _maxProtocolVersion = ProtocolVersion.MaxSupported;
         private TypeSerializerDefinitions _typeSerializerDefinitions;
         private bool _noCompact;
+        private IDriverMetricsProvider _driverMetricsProvider = new EmptyDriverMetricsProvider();
 
         /// <summary>
         ///  The pooling options used by this builder.
@@ -117,7 +120,8 @@ namespace Cassandra
                 _authProvider,
                 _authInfoProvider,
                 _queryOptions,
-                _addressTranslator);
+                _addressTranslator,
+                _driverMetricsProvider);
             if (_typeSerializerDefinitions != null)
             {
                 config.TypeSerializers = _typeSerializerDefinitions.Definitions;
@@ -629,6 +633,13 @@ namespace Cassandra
             return this;
         }
 
+        // todo (sivukhin, 10.01.2019): Add docstrings!
+        public Builder WithAppMetrics(IMetricsRoot metricsRoot)
+        {
+            _driverMetricsProvider = new AppMetricsDriverMetricsProvider(metricsRoot);
+            return this;
+        }
+        
         /// <summary>
         ///  Build the cluster with the configured set of initial contact points and policies.
         /// </summary>
