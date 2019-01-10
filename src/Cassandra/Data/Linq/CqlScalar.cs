@@ -14,14 +14,10 @@
 //   limitations under the License.
 //
 
-using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Threading.Tasks;
 using Cassandra.Mapping;
 using Cassandra.Mapping.Statements;
-using Cassandra.Tasks;
 
 namespace Cassandra.Data.Linq
 {

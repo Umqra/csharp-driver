@@ -803,7 +803,7 @@ namespace Cassandra.Tests.Mapping.Linq
                       .TableName("table1");
             
             var table = GetTable<PocoWithNumericTypes>(session, map);
-            var queries = new CqlQueryBase<PocoWithNumericTypes>[]
+            var queries = new[]
             {
                 // Use LongValue member which is not mapped
                 table.Where(t => t.LongValue >= 200L),
