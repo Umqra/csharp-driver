@@ -54,7 +54,7 @@ namespace Cassandra
         private ProtocolVersion _maxProtocolVersion = ProtocolVersion.MaxSupported;
         private TypeSerializerDefinitions _typeSerializerDefinitions;
         private bool _noCompact;
-        private IDriverMetricsProvider _driverMetricsProvider = new EmptyDriverMetricsProvider();
+        private IDriverMetricsProvider _driverMetricsProvider = EmptyDriverMetricsProvider.Instance;
 
         /// <summary>
         ///  The pooling options used by this builder.

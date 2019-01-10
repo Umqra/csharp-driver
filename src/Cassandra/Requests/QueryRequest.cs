@@ -17,6 +17,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using Cassandra.Metrics;
 using Cassandra.Serialization;
 
 namespace Cassandra.Requests
@@ -53,7 +54,7 @@ namespace Cassandra.Requests
         public string Query { get { return _cqlQuery; }}
 
         public IDictionary<string, byte[]> Payload { get; set; }
-
+        
         private readonly string _cqlQuery;
         private FrameHeader.HeaderFlag _headerFlags;
         private readonly QueryProtocolOptions _queryOptions;

@@ -244,7 +244,7 @@ namespace Cassandra
             return this;
         }
 
-        public IDriverMetricsProvider StatementMetricsProvider { get; private set; } = new EmptyDriverMetricsProvider();
+        public IDriverMetricsProvider StatementMetricsProvider { get; private set; } = EmptyDriverMetricsProvider.Instance;
 
         public IStatement SetMetricsProvider(IDriverMetricsProvider driverMetricsProvider)
         {

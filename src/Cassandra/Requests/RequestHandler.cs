@@ -80,7 +80,6 @@ namespace Cassandra.Requests
         public RequestHandler(ISession session, Serializer serializer, IStatement statement)
             : this(session, serializer, GetRequest(statement, serializer, session.Cluster.Configuration), statement)
         {
-
         }
 
         /// <summary>
@@ -89,7 +88,6 @@ namespace Cassandra.Requests
         public RequestHandler(ISession session, Serializer serializer)
             : this(session, serializer, null, null)
         {
-
         }
 
         /// <summary>
@@ -117,35 +115,41 @@ namespace Cassandra.Requests
             {
                 statement.SetIdempotence(config.QueryOptions.GetDefaultIdempotence());
             }
+
             if (statement is RegularStatement)
             {
-                var s = (RegularStatement)statement;
+                var s = (RegularStatement) statement;
                 s.Serializer = serializer;
                 var options = QueryProtocolOptions.CreateFromQuery(serializer.ProtocolVersion, s, config.QueryOptions, config.Policies);
                 options.ValueNames = s.QueryValueNames;
                 request = new QueryRequest(serializer.ProtocolVersion, s.QueryString, s.IsTracing, options);
             }
+
             if (statement is BoundStatement)
             {
-                var s = (BoundStatement)statement;
+                var s = (BoundStatement) statement;
                 var options = QueryProtocolOptions.CreateFromQuery(serializer.ProtocolVersion, s, config.QueryOptions, config.Policies);
                 request = new ExecuteRequest(serializer.ProtocolVersion, s.PreparedStatement.Id, null, s.IsTracing, options);
             }
+
             if (statement is BatchStatement)
             {
-                var s = (BatchStatement)statement;
+                var s = (BatchStatement) statement;
                 s.Serializer = serializer;
                 var consistency = config.QueryOptions.GetConsistencyLevel();
                 if (s.ConsistencyLevel != null)
                 {
                     consistency = s.ConsistencyLevel.Value;
                 }
+
                 request = new BatchRequest(serializer.ProtocolVersion, s, consistency, config);
             }
+
             if (request == null)
             {
-                throw new NotSupportedException("Statement of type " + statement.GetType().FullName + " not supported");   
+                throw new NotSupportedException("Statement of type " + statement.GetType().FullName + " not supported");
             }
+
             //Set the outgoing payload for the request
             request.Payload = statement.OutgoingPayload;
             return request;
@@ -179,6 +183,7 @@ namespace Cassandra.Requests
             {
                 return false;
             }
+
             //Cancel the current timer
             //When the next execution timer is being scheduled at the *same time*
             //the timer is not going to be cancelled, in that case, this instance is going to stay alive a little longer
@@ -186,15 +191,18 @@ namespace Cassandra.Requests
             {
                 _nextExecutionTimeout.Cancel();
             }
+
             foreach (var execution in _running)
             {
                 execution.Cancel();
             }
+
             if (ex != null)
             {
                 _tcs.TrySetException(ex);
                 return true;
             }
+
             if (action != null)
             {
                 //Create a new Task using the default scheduler, invoke the action and set the result
@@ -212,6 +220,7 @@ namespace Cassandra.Requests
                 });
                 return true;
             }
+
             _tcs.TrySetResult(result);
             return true;
         }
@@ -226,6 +235,7 @@ namespace Cassandra.Requests
                 Logger.Info("Could not obtain an available host for speculative execution");
                 return;
             }
+
             SetCompleted(ex);
         }
 
@@ -244,6 +254,7 @@ namespace Cassandra.Requests
                     return _queryPlan.Current;
                 }
             }
+
             return null;
         }
 
@@ -271,6 +282,7 @@ namespace Cassandra.Requests
                     // We should not use an ignored host
                     continue;
                 }
+
                 if (!host.IsUp)
                 {
                     // The host is not considered UP by the driver.
@@ -278,13 +290,16 @@ namespace Cassandra.Requests
                     // distance first.
                     continue;
                 }
+
                 var c = await GetConnectionFromHost(host, distance, session, triedHosts).ConfigureAwait(false);
                 if (c == null)
                 {
                     continue;
                 }
+
                 return c;
             }
+
             throw new NoHostAvailableException(triedHosts);
         }
 
@@ -329,6 +344,7 @@ namespace Cassandra.Requests
             {
                 return null;
             }
+
             try
             {
                 await c.SetKeyspace(session.Keyspace).ConfigureAwait(false);
@@ -340,6 +356,7 @@ namespace Cassandra.Requests
                 // Retry on the same host
                 return await GetConnectionFromHost(host, distance, session, triedHosts).ConfigureAwait(false);
             }
+
             return c;
         }
 
@@ -350,6 +367,7 @@ namespace Cassandra.Requests
                 _tcs.TrySetException(new DriverException("request can not be null"));
                 return _tcs.Task;
             }
+
             StartNewExecution();
             return _tcs.Task;
         }
@@ -361,7 +379,7 @@ namespace Cassandra.Requests
         {
             try
             {
-                var execution = new RequestExecution(this, _session, _request);
+                var execution = new RequestExecution(this, _session, _request, Statement.StatementMetricsProvider);
                 execution.Start();
                 _running.Add(execution);
                 ScheduleNext();
@@ -374,6 +392,7 @@ namespace Cassandra.Requests
                     //There isn't any host available, yield it to the user
                     SetCompleted(ex);
                 }
+
                 //Let's wait for the other executions 
             }
             catch (Exception ex)
@@ -393,15 +412,18 @@ namespace Cassandra.Requests
                 //its not idempotent, we should not schedule an speculative execution
                 return;
             }
+
             if (_executionPlan == null)
             {
                 _executionPlan = Policies.SpeculativeExecutionPolicy.NewPlan(_session.Keyspace, Statement);
             }
+
             var delay = _executionPlan.NextExecution(_host);
             if (delay <= 0)
             {
                 return;
             }
+
             //There is one live timer at a time.
             _nextExecutionTimeout = _session.Cluster.Configuration.Timer.NewTimeout(_ =>
             {
@@ -412,6 +434,7 @@ namespace Cassandra.Requests
                     {
                         return;
                     }
+
                     Logger.Info("Starting new speculative execution after {0}, last used host {1}", delay, _host.Address);
                     StartNewExecution();
                 });

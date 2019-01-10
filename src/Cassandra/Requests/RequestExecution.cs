@@ -5,6 +5,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using Cassandra.Metrics;
 using Cassandra.Responses;
 using Cassandra.Tasks;
 
@@ -16,16 +17,18 @@ namespace Cassandra.Requests
         private readonly RequestHandler _parent;
         private readonly ISession _session;
         private readonly IRequest _request;
+        private readonly IDriverMetricsProvider _driverMetricsProvider;
         private readonly Dictionary<IPEndPoint, Exception> _triedHosts = new Dictionary<IPEndPoint, Exception>();
         private volatile Connection _connection;
         private volatile int _retryCount;
         private volatile OperationState _operation;
-
-        public RequestExecution(RequestHandler parent, ISession session, IRequest request)
+        
+        public RequestExecution(RequestHandler parent, ISession session, IRequest request, IDriverMetricsProvider driverMetricsProvider)
         {
             _parent = parent;
             _session = session;
             _request = request;
+            _driverMetricsProvider = driverMetricsProvider;
         }
 
         public void Cancel()
@@ -92,7 +95,10 @@ namespace Cassandra.Requests
             {
                 timeoutMillis = _parent.Statement.ReadTimeoutMillis;
             }
-            _operation = _connection.Send(request, callback, timeoutMillis);
+
+            _driverMetricsProvider.Timer("QueueRequest").Measure(
+                () => _operation = _connection.Send(request, callback, timeoutMillis)
+            );
         }
 
         public void HandleResponse(Exception ex, Response response)
