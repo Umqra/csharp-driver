@@ -35,7 +35,7 @@ namespace Cassandra.Data.Linq
 
         public Type ElementType
         {
-            get { return typeof (TEntity); }
+            get { return typeof(TEntity); }
         }
 
         /// <summary>
@@ -55,6 +55,7 @@ namespace Cassandra.Data.Linq
         internal MapperFactory MapperFactory { get; set; }
 
         internal StatementFactory StatementFactory { get; set; }
+
         /// <summary>
         /// The information associated with the TEntity
         /// </summary>
@@ -74,7 +75,8 @@ namespace Cassandra.Data.Linq
             InternalInitialize(expression, table, mapperFactory, stmtFactory, pocoData);
         }
 
-        internal void InternalInitialize(Expression expression, ITable table, MapperFactory mapperFactory, StatementFactory stmtFactory, PocoData pocoData)
+        internal void InternalInitialize(Expression expression, ITable table, MapperFactory mapperFactory, StatementFactory stmtFactory,
+                                         PocoData pocoData)
         {
             Expression = expression;
             Table = table;
@@ -119,7 +121,8 @@ namespace Cassandra.Data.Linq
         /// </summary>
         public async Task<TResult> ExecuteAsync()
         {
-            return (await ExecuteAndReturnRowSetAsync().ConfigureAwait(false)).Item1;
+            var resultAndRowSet = await ExecuteAndReturnRowSetAsync().ConfigureAwait(false);
+            return resultAndRowSet.Item1;
         }
 
         /// <summary>

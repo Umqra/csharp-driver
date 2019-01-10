@@ -152,8 +152,7 @@ namespace Cassandra.Data.Linq
         {
             var cqlQuery = GetCql(out var values);
             var session = GetTable().GetSession();
-            var stmt = await _statementFactory.GetStatementAsync(session, Cql.New(cqlQuery, values))
-                                              .ConfigureAwait(false);
+            var stmt = await _statementFactory.GetStatementAsync(session, Cql.New(cqlQuery, values)).ConfigureAwait(false);
             this.CopyQueryPropertiesTo(stmt);
             var rs = await session.ExecuteAsync(stmt).ConfigureAwait(false);
             QueryTrace = rs.Info.QueryTrace;
@@ -165,7 +164,8 @@ namespace Cassandra.Data.Linq
         /// </summary>
         public async Task<RowSet> ExecuteAsync()
         {
-            return (await ExecuteAndReturnCqlQueryAsync().ConfigureAwait(false)).Item1;
+            var rowSetAndCqlQuery = await ExecuteAndReturnCqlQueryAsync().ConfigureAwait(false);
+            return rowSetAndCqlQuery.Item1;
         }
 
         /// <summary>
