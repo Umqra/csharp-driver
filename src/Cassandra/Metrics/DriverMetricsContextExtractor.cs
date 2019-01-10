@@ -1,0 +1,50 @@
+// 
+//       Copyright (C) 2019 DataStax Inc.
+// 
+//    Licensed under the Apache License, Version 2.0 (the "License");
+//    you may not use this file except in compliance with the License.
+//    You may obtain a copy of the License at
+// 
+//       http://www.apache.org/licenses/LICENSE-2.0
+// 
+//    Unless required by applicable law or agreed to in writing, software
+//    distributed under the License is distributed on an "AS IS" BASIS,
+//    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//    See the License for the specific language governing permissions and
+//    limitations under the License.
+// 
+
+using Cassandra.Data.Linq;
+
+namespace Cassandra.Metrics
+{
+    public static class DriverMetricsContextExtractor
+    {
+        public static string GenericContextPrefix = "CassandraDriver";
+
+        public static DriverMetricsContext GetContext<TEntity, TResult>(this CqlQueryBase<TEntity, TResult> cqlSelectQuery)
+        {
+            return new DriverMetricsContext(cqlSelectQuery.Keyspace, cqlSelectQuery.GetTable()?.Name, commandType: "Select");
+        }
+
+        public static IDriverMetricsProvider WithQueryContext<TEntity, TResult>(this IDriverMetricsProvider driverMetricsProvider,
+                                                                                CqlQueryBase<TEntity, TResult> cqlSelectQuery)
+        {
+            var table = cqlSelectQuery.GetTable();
+            return driverMetricsProvider.WithContext($"{GenericContextPrefix}." +
+                                                     $"{FormatKeyspaceName(table.KeyspaceName)}." +
+                                                     $"{FormatTableName(table.Name)}." +
+                                                     $"Select");
+        }
+
+        private static string FormatTableName(string tableName)
+        {
+            return tableName ?? "UndefinedTable";
+        }
+
+        private static string FormatKeyspaceName(string keyspaceName)
+        {
+            return keyspaceName ?? "UndefinedKeyspace";
+        }
+    }
+}
