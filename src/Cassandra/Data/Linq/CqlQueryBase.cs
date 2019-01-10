@@ -20,8 +20,11 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Threading;
 using System.Threading.Tasks;
+using App.Metrics;
+using App.Metrics.Timer;
 using Cassandra.Mapping;
 using Cassandra.Mapping.Statements;
+using Cassandra.Metrics;
 using Cassandra.Tasks;
 
 namespace Cassandra.Data.Linq
@@ -92,16 +95,19 @@ namespace Cassandra.Data.Linq
 
         protected abstract string GetCql(out object[] values);
 
-        protected async Task<RowSet> InternalExecuteAsync(string cqlQuery, object[] values)
+        protected async Task<RowSet> InternalExecuteAsync(string cqlQuery, object[] values, IDriverMetricsProvider metricsProvider)
         {
             var session = GetTable().GetSession();
-            var statement = await StatementFactory.GetStatementAsync(session, Cql.New(cqlQuery, values))
-                                                  .ConfigureAwait(false);
+            var statement = await metricsProvider.Timer("StatementPreparation").Measure(
+                () => StatementFactory.GetStatementAsync(session, Cql.New(cqlQuery, values))
+            ).ConfigureAwait(false);
 
             this.CopyQueryPropertiesTo(statement);
-            var rs = await session.ExecuteAsync(statement).ConfigureAwait(false);
-            QueryTrace = rs.Info.QueryTrace;
-            return rs;
+            var rowSet = await metricsProvider.Timer("StatementExecution").Measure(
+                () => session.ExecuteAsync(statement.SetMetricsProvider(metricsProvider))
+            ).ConfigureAwait(false);
+            QueryTrace = rowSet.Info.QueryTrace;
+            return rowSet;
         }
 
         /// <summary>
@@ -111,9 +117,18 @@ namespace Cassandra.Data.Linq
 
         public async Task<Tuple<TResult, RowSet>> ExecuteAndReturnRowSetAsync()
         {
-            var cql = GetCql(out var values);
-            var rs = await InternalExecuteAsync(cql, values).ConfigureAwait(false);
-            return Tuple.Create(AdaptResult(cql, rs), rs);
+            var metricsProvider = GetTable().GetSession().GetConfiguration().DriverMetricsProvider.WithQueryContext(this);
+            object[] values = null;
+            var cqlString = metricsProvider.Timer("ParseCqlExpression").Measure(
+                () => GetCql(out values)
+            );
+            var rowSet = await metricsProvider.Timer("TotalExecution").Measure(
+                () => InternalExecuteAsync(cqlString, values, metricsProvider)
+            ).ConfigureAwait(false);
+            var result = metricsProvider.Timer("AdaptingResponse").Measure(
+                () => AdaptResult(cqlString, rowSet)
+            );
+            return Tuple.Create(result, rowSet);
         }
 
         /// <summary>
