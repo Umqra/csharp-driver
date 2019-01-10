@@ -117,10 +117,8 @@ namespace Cassandra.Data.Linq
         public async Task<IPage<TEntity>> ExecutePagedAsync()
         {
             SetAutoPage(false);
-            var cql = GetCql(out var values);
-            var rs = await InternalExecuteAsync(cql, values).ConfigureAwait(false);
-            var mapper = MapperFactory.GetMapper<TEntity>(cql, rs);
-            return new Page<TEntity>(rs.Select(mapper), PagingState, rs.PagingState);
+            var resultAndRowSet = await ExecuteAndReturnRowSetAsync().ConfigureAwait(false);
+            return new Page<TEntity>(resultAndRowSet.Item1, PagingState, resultAndRowSet.Item2.PagingState);
         }
 
         /// <summary>

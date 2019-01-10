@@ -94,8 +94,8 @@ namespace Cassandra.Data.Linq
         {
             var session = GetTable().GetSession();
             var statement = await StatementFactory.GetStatementAsync(session, Cql.New(cqlQuery, values))
-                                             .ConfigureAwait(false);
-            
+                                                  .ConfigureAwait(false);
+
             this.CopyQueryPropertiesTo(statement);
             var rs = await session.ExecuteAsync(statement).ConfigureAwait(false);
             QueryTrace = rs.Info.QueryTrace;
@@ -107,14 +107,19 @@ namespace Cassandra.Data.Linq
         /// </summary>
         internal abstract TResult AdaptResult(string cql, RowSet rs);
 
+        public async Task<Tuple<TResult, RowSet>> ExecuteAndReturnRowSetAsync()
+        {
+            var cql = GetCql(out var values);
+            var rs = await InternalExecuteAsync(cql, values).ConfigureAwait(false);
+            return Tuple.Create(AdaptResult(cql, rs), rs);
+        }
+
         /// <summary>
         /// Evaluates the Linq query, executes asynchronously the cql statement and adapts the results.
         /// </summary>
         public async Task<TResult> ExecuteAsync()
         {
-            var cql = GetCql(out var values);
-            var rs = await InternalExecuteAsync(cql, values).ConfigureAwait(false);
-            return AdaptResult(cql, rs);
+            return (await ExecuteAndReturnRowSetAsync().ConfigureAwait(false)).Item1;
         }
 
         /// <summary>
