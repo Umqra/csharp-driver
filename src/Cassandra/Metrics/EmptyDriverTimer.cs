@@ -11,5 +11,9 @@ namespace Cassandra.Metrics
         public void EndRecording()
         {
         }
+
+        public void EndRecordingWithTimeout()
+        {
+        }
     }
 }

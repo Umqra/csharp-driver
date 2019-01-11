@@ -20,5 +20,11 @@ namespace Cassandra.Metrics
         {
             _timer.EndRecording();
         }
+
+        public void EndRecordingWithTimeout()
+        {
+            // todo (umqra, 11.01.2019): Fix this place!
+            _timer.EndRecording();
+        }
     }
 }

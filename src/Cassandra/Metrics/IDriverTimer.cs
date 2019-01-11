@@ -4,5 +4,6 @@ namespace Cassandra.Metrics
     {
         void StartRecording();
         void EndRecording();
+        void EndRecordingWithTimeout();
     }
 }
