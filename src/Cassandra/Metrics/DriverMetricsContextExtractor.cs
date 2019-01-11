@@ -22,11 +22,6 @@ namespace Cassandra.Metrics
     {
         public static string GenericContextPrefix = "CassandraDriver";
 
-        public static DriverMetricsContext GetContext<TEntity, TResult>(this CqlQueryBase<TEntity, TResult> cqlSelectQuery)
-        {
-            return new DriverMetricsContext(cqlSelectQuery.Keyspace, cqlSelectQuery.GetTable()?.Name, commandType: "Select");
-        }
-
         public static IDriverMetricsProvider WithQueryContext<TEntity, TResult>(this IDriverMetricsProvider driverMetricsProvider,
                                                                                 CqlQueryBase<TEntity, TResult> cqlSelectQuery)
         {

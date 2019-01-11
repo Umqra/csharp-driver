@@ -14,8 +14,6 @@
 //    limitations under the License.
 // 
 
-using App.Metrics.Timer;
-
 namespace Cassandra.Metrics
 {
     public interface IDriverMetricsProvider
