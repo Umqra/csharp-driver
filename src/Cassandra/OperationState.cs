@@ -20,8 +20,9 @@ using System.IO;
 using System.Linq;
 using System.Text;
  using System.Threading;
-﻿using System.Threading.Tasks;
-﻿using Cassandra.Requests;
+ using System.Threading.Tasks;
+ using Cassandra.Metrics;
+ using Cassandra.Requests;
  using Cassandra.Responses;
  using Cassandra.Tasks;
 ﻿using Microsoft.IO;
@@ -37,6 +38,7 @@ namespace Cassandra
         private const int StateCancelled = 1;
         private const int StateTimedout = 2;
         private const int StateCompleted = 3;
+        private readonly IDriverTimer _operationTimer;
         private Action<Exception, Response> _callback;
         public static readonly Action<Exception, Response> Noop = (_, __) => { };
         private volatile bool _timeoutCallbackSet;
@@ -55,12 +57,17 @@ namespace Cassandra
         /// </summary>
         public int TimeoutMillis { get; set; }
 
+        // todo (umqra, 12.01.2019): We need try to avoid hard dependencies of IDriverMetricsAbstractions in constructor?
         /// <summary>
         /// Creates a new operation state with the provided callback
         /// </summary>
-        public OperationState(Action<Exception, Response> callback)
+        public OperationState(Action<Exception, Response> callback, IDriverTimer operationTimer = null)
         {
+            _operationTimer = operationTimer ?? EmptyDriverTimer.Instance;
+            // todo (umqra, 11.01.2019): Volatile write in the constructor?
             Volatile.Write(ref _callback, callback);
+            
+            _operationTimer.StartRecording();
         }
 
         /// <summary>
@@ -79,31 +86,34 @@ namespace Cassandra
         public Action<Exception, Response> SetCompleted()
         {
             var previousState = Interlocked.CompareExchange(ref _state, StateCompleted, StateInit);
-            if (previousState == StateCancelled || previousState == StateCompleted)
+            switch (previousState)
             {
-                return Noop;
+                case StateCancelled:
+                case StateCompleted:
+                    return Noop;
+                case StateInit:
+                    FinishOperation();
+                    return Interlocked.Exchange(ref _callback, Noop);
+                case StateTimedout:
+                    var spin = new SpinWait();
+                    while (!_timeoutCallbackSet)
+                    {
+                        //Wait for the timeout callback to be set
+                        spin.SpinOnce();
+                    }
+                    return Interlocked.Exchange(ref _callback, Noop);
+                default:
+                    throw new ArgumentOutOfRangeException($"Unknown previous state of the {nameof(OperationState)}: {previousState}");
             }
-            Action<Exception, Response> callback;
-            if (previousState == StateInit)
-            {
-                callback = Interlocked.Exchange(ref _callback, Noop);
-                var timeout = _timeout;
-                if (timeout != null)
-                {
-                    //Cancel it if it hasn't expired
-                    timeout.Cancel();
-                }
-                return callback;
-            }
-            //Operation has timed out
-            var spin = new SpinWait();
-            while (!_timeoutCallbackSet)
-            {
-                //Wait for the timeout callback to be set
-                spin.SpinOnce();
-            }
-            callback = Interlocked.Exchange(ref _callback, Noop);
-            return callback;
+        }
+
+        private void FinishOperation()
+        {
+            // todo (umqra, 11.01.2019): Why we need to copy reference to the timer?
+            var timeout = _timeout;
+            //Cancel it if it hasn't expired
+            timeout?.Cancel();
+            _operationTimer.EndRecording();
         }
 
         /// <summary>
@@ -127,6 +137,17 @@ namespace Cassandra
         /// and sets a handler when the response is received
         /// </summary>
         public bool MarkAsTimedOut(OperationTimedOutException ex, Action onReceive)
+        {
+            var markedAsTimedOut = DoMarkAsTimedOut(ex, onReceive);
+            if (markedAsTimedOut)
+            {
+                _operationTimer.EndRecordingWithTimeout();
+            }
+
+            return markedAsTimedOut;
+        }
+
+        private bool DoMarkAsTimedOut(OperationTimedOutException ex, Action onReceive)
         {
             var previousState = Interlocked.CompareExchange(ref _state, StateTimedout, StateInit);
             if (previousState != StateInit)
@@ -156,13 +177,9 @@ namespace Cassandra
             }
             //Remove the closure
             Volatile.Write(ref _callback, Noop);
-            var timeout = _timeout;
-            if (timeout != null)
-            {
-                //Cancel it if it hasn't expired
-                //We should not worry about yielding OperationTimedOutExceptions when this is cancelled.
-                timeout.Cancel();
-            }
+
+            // todo (umqra, 11.01.2019): Why we need to copy reference of timer?
+            FinishOperation();
         }
 
         /// <summary>
