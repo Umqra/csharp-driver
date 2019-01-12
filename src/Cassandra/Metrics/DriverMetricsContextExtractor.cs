@@ -27,7 +27,7 @@ namespace Cassandra.Metrics
         {
             var table = cqlSelectQuery.GetTable();
             return driverMetricsProvider.WithContext($"{GenericContextPrefix}." +
-                                                     $"{FormatKeyspaceName(table.KeyspaceName)}." +
+                                                     $"{FormatKeyspaceName(table.KeyspaceName ?? table.GetSession().Keyspace)}." +
                                                      $"{FormatTableName(table.Name)}." +
                                                      $"Select");
         }
