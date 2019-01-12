@@ -379,7 +379,8 @@ namespace Cassandra.Requests
         {
             try
             {
-                var execution = new RequestExecution(this, _session, _request, Statement.StatementMetricsProvider);
+                // todo (umqra, 12.01.2019): We must avoid such situations
+                var execution = new RequestExecution(this, _session, _request, Statement?.StatementMetricsProvider);
                 execution.Start();
                 _running.Add(execution);
                 ScheduleNext();
