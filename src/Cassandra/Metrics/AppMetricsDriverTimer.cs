@@ -1,3 +1,4 @@
+using App.Metrics;
 using App.Metrics.Timer;
 
 namespace Cassandra.Metrics
@@ -5,6 +6,7 @@ namespace Cassandra.Metrics
     class AppMetricsDriverTimer : IDriverTimer
     {
         private readonly ITimer _timer;
+        private TimerContext _recordingContext;
 
         public AppMetricsDriverTimer(ITimer timer)
         {
@@ -13,18 +15,18 @@ namespace Cassandra.Metrics
 
         public void StartRecording()
         {
-            _timer.StartRecording();
+            _recordingContext = _timer.NewContext();
         }
 
         public void EndRecording()
         {
-            _timer.EndRecording();
+            _recordingContext.Dispose();
         }
 
         public void EndRecordingWithTimeout()
         {
             // todo (umqra, 11.01.2019): Fix this place!
-            _timer.EndRecording();
+            _recordingContext.Dispose();
         }
     }
 }
