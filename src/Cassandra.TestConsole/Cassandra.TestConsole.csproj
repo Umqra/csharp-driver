@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net471</TargetFramework>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Cassandra\Cassandra.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="App.Metrics.Core" Version="3.0.0" />
+      <PackageReference Include="App.Metrics.Reporting.Graphite" Version="3.0.0" />
+    </ItemGroup>
+
+</Project>
