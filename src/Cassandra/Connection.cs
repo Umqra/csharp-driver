@@ -25,6 +25,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Tasks;
 using Cassandra.Compression;
+using Cassandra.Metrics;
 using Cassandra.Requests;
 using Cassandra.Responses;
 using Cassandra.Serialization;
@@ -163,6 +164,10 @@ namespace Cassandra
 
         public Configuration Configuration { get; set; }
 
+        // todo (umqra, 12.01.2019): Carefully inject metrics provider into the Connection class
+        // todo (umqra, 12.01.2019): We must try to inject metrics in as few places as possibly can
+        public IDriverMetricsProvider ConnectionMetricsProvider { get; set; } = EmptyDriverMetricsProvider.Instance;
+        
         public Connection(Serializer serializer, IPEndPoint endpoint, Configuration configuration)
         {
             if (serializer == null)
@@ -549,7 +554,7 @@ namespace Cassandra
                 stream = stream ?? Configuration.BufferPool.GetStream(StreamReadTag);
                 var state = header.Opcode != EventResponse.OpCode
                     ? RemoveFromPending(header.StreamId)
-                    : new OperationState(EventHandler);
+                    : new OperationState(EventHandler, ConnectionMetricsProvider.Timer("Request")); // todo (umqra, 12.01.2019): What this case is about?
                 stream.Write(buffer, offset, remainingBodyLength);
                 // State can be null when the Connection is being closed concurrently
                 // The original callback is being called with an error, use a Noop here
@@ -712,24 +717,27 @@ namespace Cassandra
         /// </summary>
         public OperationState Send(IRequest request, Action<Exception, Response> callback, int timeoutMillis = Timeout.Infinite)
         {
-            if (_isCanceled)
+            using (ConnectionMetricsProvider.Timer("QueueRequest").MeasureInScope())
             {
-                // Avoid calling back before returning
-                Task.Factory.StartNew(() => callback(new SocketException((int)SocketError.NotConnected), null),
-                    CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
-                return null;
+                if (_isCanceled)
+                {
+                    // Avoid calling back before returning
+                    Task.Factory.StartNew(() => callback(new SocketException((int) SocketError.NotConnected), null),
+                        CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
+                    return null;
+                }
+
+                IncrementInFlight();
+
+                var state = new OperationState(callback, ConnectionMetricsProvider.Timer("RequestLatency"))
+                {
+                    Request = request,
+                    TimeoutMillis = timeoutMillis > 0 ? timeoutMillis : Configuration.SocketOptions.ReadTimeoutMillis
+                };
+                _writeQueue.Enqueue(state);
+                RunWriteQueue();
+                return state;
             }
-
-            IncrementInFlight();
-
-            var state = new OperationState(callback)
-            {
-                Request = request,
-                TimeoutMillis = timeoutMillis > 0 ? timeoutMillis : Configuration.SocketOptions.ReadTimeoutMillis
-            };
-            _writeQueue.Enqueue(state);
-            RunWriteQueue();
-            return state;
         }
 
         private void RunWriteQueue()

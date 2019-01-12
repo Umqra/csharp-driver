@@ -28,7 +28,7 @@ namespace Cassandra.Requests
             _parent = parent;
             _session = session;
             _request = request;
-            _driverMetricsProvider = driverMetricsProvider;
+            _driverMetricsProvider = driverMetricsProvider ?? EmptyDriverMetricsProvider.Instance;
         }
 
         public void Cancel()
@@ -60,6 +60,7 @@ namespace Cassandra.Requests
                         return;
                     }
                     _connection = t.Result;
+                    _connection.ConnectionMetricsProvider = _driverMetricsProvider;
                     Send(_request, HandleResponse);
                 }, TaskContinuationOptions.ExecuteSynchronously);
                 return;
@@ -96,9 +97,7 @@ namespace Cassandra.Requests
                 timeoutMillis = _parent.Statement.ReadTimeoutMillis;
             }
 
-            _driverMetricsProvider.Timer("QueueRequest").Measure(
-                () => _operation = _connection.Send(request, callback, timeoutMillis)
-            );
+            _operation = _connection.Send(request, callback, timeoutMillis);
         }
 
         public void HandleResponse(Exception ex, Response response)
