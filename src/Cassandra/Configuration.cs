@@ -203,7 +203,7 @@ namespace Cassandra
             // to create the instance.
             _bufferPool = new RecyclableMemoryStreamManager(16 * 1024, 256 * 1024, ProtocolOptions.MaximumFrameLength);
             _timer = new HashedWheelTimer();
-            _driverMetricsProvider = driverMetricsProvider ?? EmptyDriverMetricsProvider.Instance;
+            _driverMetricsProvider = (driverMetricsProvider ?? EmptyDriverMetricsProvider.Instance).ConfigureGlobalParameters();
         }
 
         /// <summary>

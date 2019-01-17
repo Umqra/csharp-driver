@@ -20,14 +20,16 @@ namespace Cassandra.Metrics
 {
     public static class DriverMetricsContextExtractor
     {
-        public static string GenericContextPrefix = "CassandraDriver";
+        public static IDriverMetricsProvider ConfigureGlobalParameters(this IDriverMetricsProvider driverMetricsProvider)
+        {
+            return driverMetricsProvider.WithContext("CassandraDriver");
+        }
 
         public static IDriverMetricsProvider WithQueryContext<TEntity, TResult>(this IDriverMetricsProvider driverMetricsProvider,
                                                                                 CqlQueryBase<TEntity, TResult> cqlSelectQuery)
         {
             var table = cqlSelectQuery.GetTable();
-            return driverMetricsProvider.WithContext($"{GenericContextPrefix}." +
-                                                     $"{FormatKeyspaceName(table.KeyspaceName ?? table.GetSession().Keyspace)}." +
+            return driverMetricsProvider.WithContext($"{FormatKeyspaceName(table.KeyspaceName ?? table.GetSession().Keyspace)}." +
                                                      $"{FormatTableName(table.Name)}." +
                                                      $"Select");
         }
@@ -37,8 +39,7 @@ namespace Cassandra.Metrics
                                                                 CqlCommand cqlCommand)
         {
             var table = cqlCommand.GetTable();
-            return driverMetricsProvider.WithContext($"{GenericContextPrefix}." +
-                                                     $"{FormatKeyspaceName(table.KeyspaceName ?? table.GetSession().Keyspace)}." +
+            return driverMetricsProvider.WithContext($"{FormatKeyspaceName(table.KeyspaceName ?? table.GetSession().Keyspace)}." +
                                                      $"{FormatTableName(table.Name)}." +
                                                      $"{cqlCommand.CommandName}");
         }
