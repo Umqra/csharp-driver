@@ -16,6 +16,7 @@ namespace Cassandra.Collections
         private volatile T[] _array;
         private readonly object _writeLock = new object();
 
+        // todo (sivukhin, 17.01.2019): Is it thread-safe operation?
         public int Count { get { return _array.Length; } }
 
         public bool IsReadOnly { get { return false; } }

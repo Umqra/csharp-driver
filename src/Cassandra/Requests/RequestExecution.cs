@@ -60,6 +60,7 @@ namespace Cassandra.Requests
                         return;
                     }
                     _connection = t.Result;
+                    // todo (sivukhin, 17.01.2019): Are there any concurrency issues?
                     _connection.ConnectionMetricsProvider = _driverMetricsProvider;
                     Send(_request, HandleResponse);
                 }, TaskContinuationOptions.ExecuteSynchronously);
