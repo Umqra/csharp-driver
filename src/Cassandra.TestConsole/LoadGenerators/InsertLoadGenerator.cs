@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Cassandra.Data.Linq;
 
@@ -6,6 +8,8 @@ namespace Cassandra.TestConsole.LoadGenerators
 {
     class InsertLoadGenerator : ILoadGenerator
     {
+        private readonly int _count;
+
         public static string[] ArtistNames =
         {
             "Julien",
@@ -49,6 +53,11 @@ namespace Cassandra.TestConsole.LoadGenerators
 
         public static Random Random = new Random();
 
+        public InsertLoadGenerator(int count = 1)
+        {
+            _count = count;
+        }
+
         private static string ChooseRandomName(string[] names)
         {
             return string.Join(" ", names.RandomSubset(Random.Next(1, 4)));
@@ -56,18 +65,14 @@ namespace Cassandra.TestConsole.LoadGenerators
 
         public Task GenerateLoad(Table<SongCqlEntity> songTable)
         {
-            var title = ChooseRandomName(SongTitles);
-            var artist = ChooseRandomName(ArtistNames);
-            var genres = SongGenres.RandomSubset(Random.Next(1, 3));
-            var song = new SongCqlEntity
+            return songTable.InsertManyAsync(Enumerable.Repeat(0, _count).Select(_ => new SongCqlEntity
             {
                 SongId = Guid.NewGuid(),
-                Genres = genres,
-                Artist = artist,
-                SongTitle = title,
+                Genres = SongGenres.RandomSubset(Random.Next(1, 3)),
+                Artist = ChooseRandomName(ArtistNames),
+                SongTitle = ChooseRandomName(SongTitles),
                 Likes = Random.Next(10),
-            };
-            return songTable.Insert(song).ExecuteAsync();
+            }).ToArray(), ttl: null);
         }
     }
 }

@@ -12,6 +12,14 @@
     <ItemGroup>
       <PackageReference Include="App.Metrics.Core" Version="3.0.0" />
       <PackageReference Include="App.Metrics.Reporting.Graphite" Version="3.0.0" />
+      <PackageReference Include="Metrics.NET" Version="0.5.6-pre" />
+      <PackageReference Include="Metrics.NET.Graphite" Version="0.5.0" />
+      <PackageReference Include="Microsoft.Extensions.Logging.Configuration" Version="3.0.0-preview.18572.1" />
+      <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="2.2.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Reference Include="System.Configuration" />
     </ItemGroup>
 
 </Project>

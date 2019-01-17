@@ -7,7 +7,7 @@ namespace Cassandra.TestConsole.LoadGenerators
     {
         public Task GenerateLoad(Table<SongCqlEntity> songTable)
         {
-            return songTable.ExecuteAsync();
+            return songTable.Take(100).ExecuteAsync();
         }
     }
 }
