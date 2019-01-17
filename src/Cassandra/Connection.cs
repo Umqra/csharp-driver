@@ -182,6 +182,22 @@ namespace Cassandra
             Configuration = configuration;
             _tcpSocket = new TcpSocket(endpoint, configuration.SocketOptions, configuration.ProtocolOptions.SslOptions);
             _idleTimer = new Timer(IdleTimeoutHandler, null, Timeout.Infinite, Timeout.Infinite);
+            
+            var connectionMetricsProvider = configuration.DriverMetricsProvider.WithContext(Address.ToString());
+            // todo (sivukhin, 17.01.2019): Efficiency of .Count operation for ConcurrentDictionary
+//            var writeQueueSizeHistogram = connectionMetricsProvider.Histogram("WriteQueueSize");
+//            var pendingOperationsHistogram = connectionMetricsProvider.Histogram("PendingOperationsCount");
+//            var freeOperationsHistogram = connectionMetricsProvider.Histogram("FreeOperationsCount");
+//            Task.Factory.StartNew(async () =>
+//            {
+//                while (true)
+//                {
+//                    writeQueueSizeHistogram.Update(_writeQueue.Count);
+//                    pendingOperationsHistogram.Update(_pendingOperations.Count);
+//                    freeOperationsHistogram.Update(_freeOperations.Count);
+//                    await Task.Delay(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
+//                }
+//            }, TaskCreationOptions.LongRunning);
         }
 
         private void IncrementInFlight()

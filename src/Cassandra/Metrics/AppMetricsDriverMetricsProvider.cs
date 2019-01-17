@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using App.Metrics;
+using App.Metrics.Gauge;
 using App.Metrics.Histogram;
 using App.Metrics.Timer;
 
@@ -25,6 +26,15 @@ namespace Cassandra.Metrics
             {
                 Name = metricName,
                 Context = CurrentContext,
+            }));
+        }
+
+        public IDriverHistogram Histogram(string metricName)
+        {
+            return new AppMetricsDriverHistogram(_metricsRoot.Provider.Histogram.Instance(new HistogramOptions
+            {
+                Name = metricName,
+                Context = CurrentContext
             }));
         }
 

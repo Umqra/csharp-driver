@@ -11,6 +11,11 @@ namespace Cassandra.Metrics
             return EmptyDriverTimer.Instance;
         }
 
+        public IDriverHistogram Histogram(string metricName)
+        {
+            return EmptyDriverHistogram.Instance;
+        }
+
         public void Gauge(string metricName, Func<double> instantValue)
         {
         }
