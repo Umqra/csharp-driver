@@ -14,18 +14,18 @@
 //   limitations under the License.
 //
 
- using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
- using System.Threading;
- using System.Threading.Tasks;
- using Cassandra.Metrics;
- using Cassandra.Requests;
- using Cassandra.Responses;
- using Cassandra.Tasks;
-﻿using Microsoft.IO;
+using System.Threading;
+using System.Threading.Tasks;
+using Cassandra.Metrics;
+using Cassandra.Requests;
+using Cassandra.Responses;
+using Cassandra.Tasks;
+using Microsoft.IO;
 
 namespace Cassandra
 {
@@ -38,7 +38,11 @@ namespace Cassandra
         private const int StateCancelled = 1;
         private const int StateTimedout = 2;
         private const int StateCompleted = 3;
-        private readonly IDriverTimer _operationTimer;
+        private readonly IDriverMetricsProvider _operationMetricsProvider;
+        private readonly IDriverTimer _totalExecutionTimer;
+        private readonly IDriverTimer _queueStallTimer;
+        private readonly IDriverTimer _sendingTimer;
+        private readonly IDriverTimer _receivingTimer;
         private Action<Exception, Response> _callback;
         public static readonly Action<Exception, Response> Noop = (_, __) => { };
         private volatile bool _timeoutCallbackSet;
@@ -61,13 +65,19 @@ namespace Cassandra
         /// <summary>
         /// Creates a new operation state with the provided callback
         /// </summary>
-        public OperationState(Action<Exception, Response> callback, IDriverTimer operationTimer = null)
+        public OperationState(Action<Exception, Response> callback, IDriverMetricsProvider operationTimer = null)
         {
-            _operationTimer = operationTimer ?? EmptyDriverTimer.Instance;
+            _operationMetricsProvider = operationTimer ?? EmptyDriverMetricsProvider.Instance;
             // todo (umqra, 11.01.2019): Volatile write in the constructor?
             Volatile.Write(ref _callback, callback);
-            
-            _operationTimer.StartRecording();
+
+            _totalExecutionTimer = _operationMetricsProvider.Timer("Total");
+            _queueStallTimer = _operationMetricsProvider.Timer("StallInQueue");
+            _sendingTimer = _operationMetricsProvider.Timer("Send");
+            _receivingTimer = _operationMetricsProvider.Timer("Receive");
+
+            _totalExecutionTimer.StartRecording();
+            _queueStallTimer.StartRecording();
         }
 
         /// <summary>
@@ -101,6 +111,7 @@ namespace Cassandra
                         //Wait for the timeout callback to be set
                         spin.SpinOnce();
                     }
+
                     return Interlocked.Exchange(ref _callback, Noop);
                 default:
                     throw new ArgumentOutOfRangeException($"Unknown previous state of the {nameof(OperationState)}: {previousState}");
@@ -113,7 +124,8 @@ namespace Cassandra
             var timeout = _timeout;
             //Cancel it if it hasn't expired
             timeout?.Cancel();
-            _operationTimer.EndRecording();
+            _totalExecutionTimer.EndRecording();
+            _receivingTimer.EndRecording();
         }
 
         /// <summary>
@@ -127,6 +139,7 @@ namespace Cassandra
             {
                 return;
             }
+
             //Invoke the callback in a new thread in the thread pool
             //This way we don't let the user block on a thread used by the Connection
             Task.Factory.StartNew(() => callback(ex, null), CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
@@ -141,7 +154,7 @@ namespace Cassandra
             var markedAsTimedOut = DoMarkAsTimedOut(ex, onReceive);
             if (markedAsTimedOut)
             {
-                _operationTimer.EndRecordingWithTimeout();
+                _totalExecutionTimer.EndRecording();
             }
 
             return markedAsTimedOut;
@@ -154,6 +167,7 @@ namespace Cassandra
             {
                 return false;
             }
+
             //When the data is received, invoke on receive callback
             var callback = Interlocked.Exchange(ref _callback, (_, __) => onReceive());
 #if !NETCORE
@@ -175,6 +189,7 @@ namespace Cassandra
             {
                 return;
             }
+
             //Remove the closure
             Volatile.Write(ref _callback, Noop);
 
@@ -195,6 +210,18 @@ namespace Cassandra
                     callback(ex, null);
                 }
             }, CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
+        }
+
+        public void RemovedFromQueue()
+        {
+            _queueStallTimer.EndRecording();
+            _sendingTimer.StartRecording();
+        }
+
+        public void CompleteSending()
+        {
+            _sendingTimer.EndRecording();
+            _receivingTimer.StartRecording();
         }
     }
 }

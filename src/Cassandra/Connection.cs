@@ -554,7 +554,7 @@ namespace Cassandra
                 stream = stream ?? Configuration.BufferPool.GetStream(StreamReadTag);
                 var state = header.Opcode != EventResponse.OpCode
                     ? RemoveFromPending(header.StreamId)
-                    : new OperationState(EventHandler, ConnectionMetricsProvider.Timer("Request")); // todo (umqra, 12.01.2019): What this case is about?
+                    : new OperationState(EventHandler); // todo (umqra, 12.01.2019): What this case is about?
                 stream.Write(buffer, offset, remainingBodyLength);
                 // State can be null when the Connection is being closed concurrently
                 // The original callback is being called with an error, use a Noop here
@@ -729,7 +729,7 @@ namespace Cassandra
 
                 IncrementInFlight();
 
-                var state = new OperationState(callback, ConnectionMetricsProvider.Timer("RequestLatency"))
+                var state = new OperationState(callback, ConnectionMetricsProvider.WithContext("RequestLatency"))
                 {
                     Request = request,
                     TimeoutMillis = timeoutMillis > 0 ? timeoutMillis : Configuration.SocketOptions.ReadTimeoutMillis
@@ -764,6 +764,8 @@ namespace Cassandra
             //Dequeue all items until threshold is passed
             long totalLength = 0;
             RecyclableMemoryStream stream = null;
+            // todo (sivukhin, 17.01.2019): Inefficient in terms of memory consumption
+            var operationsToWrite = new List<OperationState>();
             while (totalLength < CoalescingThreshold)
             {
                 OperationState state;
@@ -782,17 +784,20 @@ namespace Cassandra
                     break;
                 }
                 Logger.Verbose("Sending #{0} for {1} to {2}", streamId, state.Request.GetType().Name, Address);
+                state.RemovedFromQueue();
                 if (_isCanceled)
                 {
                     state.InvokeCallback(new SocketException((int) SocketError.NotConnected));
                     break;
                 }
+                
                 _pendingOperations.AddOrUpdate(streamId, state, (k, oldValue) => state);
                 int frameLength;
                 try
                 {
                     //lazy initialize the stream
                     stream = stream ?? (RecyclableMemoryStream) Configuration.BufferPool.GetStream(StreamWriteTag);
+                    operationsToWrite.Add(state);
                     frameLength = state.Request.WriteFrame(streamId, stream, _serializer);
                     if (state.TimeoutMillis > 0)
                     {
@@ -837,6 +842,8 @@ namespace Cassandra
             //Write and close the stream when flushed
             // ReSharper disable once PossibleNullReferenceException : if totalLength > 0 the stream is initialized
             _tcpSocket.Write(stream, () => stream.Dispose());
+            foreach (var operation in operationsToWrite)
+                operation.CompleteSending();
         }
 
         /// <summary>
