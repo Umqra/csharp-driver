@@ -22,6 +22,8 @@ namespace Cassandra.Data.Linq
             _origin.CopyQueryPropertiesTo(this);
         }
 
+        public override string CommandName => $"Conditional_{_origin.CommandName}";
+
         protected internal override string GetCql(out object[] values)
         {
             return _origin.GetCql(out values);

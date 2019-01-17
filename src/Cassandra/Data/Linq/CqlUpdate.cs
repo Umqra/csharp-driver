@@ -31,6 +31,8 @@ namespace Cassandra.Data.Linq
             _mapperFactory = mapperFactory;
         }
 
+        public override string CommandName { get; } = "Update";
+
         protected internal override string GetCql(out object[] values)
         {
             var visitor = new CqlExpressionVisitor(PocoData, Table.Name, Table.KeyspaceName);

@@ -37,6 +37,8 @@ namespace Cassandra.Data.Linq
             return this;
         }
 
+        public override string CommandName { get; } = "Delete";
+
         protected internal override string GetCql(out object[] values)
         {
             var visitor = new CqlExpressionVisitor(PocoData, Table.Name, Table.KeyspaceName);

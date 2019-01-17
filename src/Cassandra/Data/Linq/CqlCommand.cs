@@ -38,6 +38,8 @@ namespace Cassandra.Data.Linq
         internal PocoData PocoData { get; }
         internal ITable Table { get; }
 
+        public abstract string CommandName { get; }
+
         /// <inheritdoc />
         public override string QueryString
         {

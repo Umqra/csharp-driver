@@ -46,6 +46,8 @@ namespace Cassandra.Data.Linq
             return new CqlConditionalCommand<TEntity>(this, _mapperFactory);
         }
 
+        public override string CommandName { get; } = "Insert";
+
         protected internal override string GetCql(out object[] values)
         {
             var pocoData = _mapperFactory.PocoDataFactory.GetPocoData<TEntity>();
