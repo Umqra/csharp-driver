@@ -32,6 +32,17 @@ namespace Cassandra.Metrics
                                                      $"Select");
         }
 
+        // todo (sivukhin, 17.01.2019): Extract common interface for CqlQueryBase and CqlCommand?
+        public static IDriverMetricsProvider WithCommandContext(this IDriverMetricsProvider driverMetricsProvider,
+                                                                CqlCommand cqlCommand)
+        {
+            var table = cqlCommand.GetTable();
+            return driverMetricsProvider.WithContext($"{GenericContextPrefix}." +
+                                                     $"{FormatKeyspaceName(table.KeyspaceName ?? table.GetSession().Keyspace)}." +
+                                                     $"{FormatTableName(table.Name)}." +
+                                                     $"{cqlCommand.CommandName}");
+        }
+
         private static string FormatTableName(string tableName)
         {
             return tableName ?? "UndefinedTable";

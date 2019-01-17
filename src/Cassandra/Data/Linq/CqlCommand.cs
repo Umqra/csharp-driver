@@ -20,6 +20,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Mapping;
 using Cassandra.Mapping.Statements;
+using Cassandra.Metrics;
 using Cassandra.Tasks;
 
 namespace Cassandra.Data.Linq
@@ -150,15 +151,25 @@ namespace Cassandra.Data.Linq
             return Table;
         }
 
+        // todo (sivukhin, 17.01.2019): Decompose this method like in the CqlQueryBase?
         protected async Task<Tuple<RowSet, string>> ExecuteAndReturnCqlQueryAsync()
         {
-            var cqlQuery = GetCql(out var values);
             var session = GetTable().GetSession();
-            var stmt = await _statementFactory.GetStatementAsync(session, Cql.New(cqlQuery, values)).ConfigureAwait(false);
+
+            var metricsProvider = GetTable().GetSession().GetConfiguration().DriverMetricsProvider.WithCommandContext(this);
+            object[] values = null;
+            var cqlQuery = metricsProvider.Timer("ParseCqlExpression").Measure(
+                () => GetCql(out values)
+            );
+            var stmt = await metricsProvider.Timer("StatementPreparation").Measure(
+                () => _statementFactory.GetStatementAsync(session, Cql.New(cqlQuery, values))
+            ).ConfigureAwait(false);
             this.CopyQueryPropertiesTo(stmt);
-            var rs = await session.ExecuteAsync(stmt).ConfigureAwait(false);
-            QueryTrace = rs.Info.QueryTrace;
-            return Tuple.Create(rs, cqlQuery);
+            var rowSet = await metricsProvider.Timer("StatementExecution").Measure(
+                () => session.ExecuteAsync(stmt.SetMetricsProvider(metricsProvider))
+            ).ConfigureAwait(false);
+            QueryTrace = rowSet.Info.QueryTrace;
+            return Tuple.Create(rowSet, cqlQuery);
         }
 
         /// <summary>
@@ -183,7 +194,7 @@ namespace Cassandra.Data.Linq
         /// </summary>
         public virtual void EndExecute(IAsyncResult ar)
         {
-            var task = (Task<RowSet>)ar;
+            var task = (Task<RowSet>) ar;
             task.Wait();
         }
     }
