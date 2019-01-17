@@ -125,6 +125,9 @@ namespace Cassandra
             _timer = config.Timer;
             _reconnectionSchedule = config.Policies.ReconnectionPolicy.NewSchedule();
             _expectedConnectionLength = 1;
+
+            var hostMetricsProvider = config.DriverMetricsProvider.WithContext(host.Address.ToString());
+            hostMetricsProvider.Gauge("ConnectionPoolSize", () => _connections.Count);
         }
 
         /// <summary>

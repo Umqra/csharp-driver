@@ -1,3 +1,5 @@
+using System;
+
 namespace Cassandra.Metrics
 {
     class EmptyDriverMetricsProvider : IDriverMetricsProvider
@@ -7,6 +9,10 @@ namespace Cassandra.Metrics
         public IDriverTimer Timer(string metricName)
         {
             return EmptyDriverTimer.Instance;
+        }
+
+        public void Gauge(string metricName, Func<double> instantValue)
+        {
         }
 
         public IDriverMetricsProvider WithContext(string context)

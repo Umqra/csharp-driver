@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using App.Metrics;
+using App.Metrics.Histogram;
 using App.Metrics.Timer;
 
 namespace Cassandra.Metrics
@@ -25,6 +26,15 @@ namespace Cassandra.Metrics
                 Name = metricName,
                 Context = CurrentContext,
             }));
+        }
+
+        public void Gauge(string metricName, Func<double> instantValue)
+        {
+            _metricsRoot.Measure.Gauge.SetValue(new GaugeOptions
+            {
+                Name = metricName,
+                Context = $"{string.Join(".", _contextComponents)}"
+            }, instantValue);
         }
 
         public IDriverMetricsProvider WithContext(string context)
