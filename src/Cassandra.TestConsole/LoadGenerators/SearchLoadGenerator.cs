@@ -1,13 +1,15 @@
 ﻿using System.Threading.Tasks;
 using Cassandra.Data.Linq;
+using MoreLinq;
 
 namespace Cassandra.TestConsole.LoadGenerators
 {
     class SearchLoadGenerator : ILoadGenerator
     {
-        public Task GenerateLoad(Table<SongCqlEntity> songTable)
+        public async Task GenerateLoad(Table<SongCqlEntity> songTable)
         {
-            return songTable.Take(100).ExecuteAsync();
+            var songs = await songTable.Take(100).ExecuteAsync().ConfigureAwait(false);
+            songs.Consume();
         }
     }
 }

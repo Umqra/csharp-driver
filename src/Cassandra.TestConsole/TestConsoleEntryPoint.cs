@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Configuration;
 using System.Diagnostics;
 using System.Linq;
@@ -31,28 +32,18 @@ namespace Cassandra.TestConsole
 
         static void Main(string[] args)
         {
+            ThreadPoolUtility.SetUp();
             ConfigureMetricsNet();
             Diagnostics.AddLoggerProvider(new ConsoleLoggerProvider((s, level) => level > LogLevel.Debug, true));
 
-            var metrics = new MetricsBuilder().Report.ToGraphite(GraphiteUri)
-                                              .Build();
+            var metrics = new MetricsBuilder()
+                          .SampleWith.ForwardDecaying()
+                          .Report.ToGraphite(GraphiteUri)
+                          .Build();
             var scheduler = new AppMetricsTaskScheduler(TimeSpan.FromSeconds(1),
                 async () => { await Task.WhenAll(metrics.ReportRunner.RunAllAsync()).ConfigureAwait(false); }
             );
             scheduler.Start();
-//
-//            while (true)
-//            {
-//                var timers = Enumerable.Repeat(0, 100).Select(_ => metrics.Provider.Timer.Instance(new TimerOptions
-//                {
-//                    Name = "test_timer_with_bug"
-//                })).ToArray();
-//                foreach (var timer in timers)
-//                    timer.NewContext();
-//                Thread.Sleep(TimeSpan.FromSeconds(0.1));
-//                foreach (var timer in timers)
-//                    timer.();
-//            }
 
             metrics.Measure.Gauge.SetValue(new GaugeOptions {Name = "baseline"}, () => 1);
 
@@ -68,28 +59,31 @@ namespace Cassandra.TestConsole
             table.CreateIfNotExists();
 
             var loadGenerators = Enumerable.Repeat<ILoadGenerator>(new SearchLoadGenerator(), 100)
-                                           //.Concat(Enumerable.Repeat(new InsertLoadGenerator(), 100))
-                                           .Concat(new[] {new InsertLoadGenerator(100)})
-                                           .Concat(Enumerable.Repeat(new LikesLoadGenerator(), 20))
-                                           .Concat(Enumerable.Repeat(new DeleteLoadGenerator(), 20))
-                                           .Concat(Enumerable.Repeat(new ConditionalDeleteLoadGenerator(), 10))
+//                                           .Concat(Enumerable.Repeat(new InsertLoadGenerator(), 100))
+//                                           .Concat(new[] {new InsertLoadGenerator(100)})
+//                                           .Concat(Enumerable.Repeat(new LikesLoadGenerator(), 20))
+//                                           .Concat(Enumerable.Repeat(new DeleteLoadGenerator(), 20))
+//                                           .Concat(Enumerable.Repeat(new ConditionalDeleteLoadGenerator(), 10))
                                            .ToArray();
             while (true)
             {
                 Console.Error.WriteLine("Wait load generators to finish...");
                 var stopwatch = Stopwatch.StartNew();
+                var timings = new List<TimeSpan>();
                 Task.WaitAll(loadGenerators.Select(async loadGenerator =>
                 {
                     try
                     {
+                        var queryStopwatch = Stopwatch.StartNew();
                         await loadGenerator.GenerateLoad(table).ConfigureAwait(false);
+                        timings.Add(queryStopwatch.Elapsed);
                     }
                     catch (Exception exception)
                     {
                         Console.Error.WriteLine($"Exception during generating load with {loadGenerator.GetType()}: {exception}");
                     }
                 }).ToArray());
-                Console.Error.WriteLine($"Load generators finished within {stopwatch.Elapsed.TotalSeconds} seconds");
+                Console.Error.WriteLine($"Load generators finished within {stopwatch.Elapsed.TotalSeconds} seconds (details: {string.Join(", ", timings.OrderBy(x => x).Select(x => x.TotalSeconds))})");
                 Thread.Sleep(TimeSpan.FromSeconds(1));
             }
         }
