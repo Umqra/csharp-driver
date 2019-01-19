@@ -29,9 +29,10 @@ namespace Cassandra.Metrics
                                                                                 CqlQueryBase<TEntity, TResult> cqlSelectQuery)
         {
             var table = cqlSelectQuery.GetTable();
-            return driverMetricsProvider.WithContext($"{FormatKeyspaceName(table.KeyspaceName ?? table.GetSession().Keyspace)}." +
-                                                     $"{FormatTableName(table.Name)}." +
-                                                     $"Select");
+            // todo (sivukhin, 17.01.2019): Consider performance issues here
+            return driverMetricsProvider.WithContext($"{FormatKeyspaceName(table.KeyspaceName ?? table.GetSession().Keyspace)}")
+                                        .WithContext($"{FormatTableName(table.Name)}")
+                                        .WithContext("Select");
         }
 
         // todo (sivukhin, 17.01.2019): Extract common interface for CqlQueryBase and CqlCommand?
@@ -39,9 +40,10 @@ namespace Cassandra.Metrics
                                                                 CqlCommand cqlCommand)
         {
             var table = cqlCommand.GetTable();
-            return driverMetricsProvider.WithContext($"{FormatKeyspaceName(table.KeyspaceName ?? table.GetSession().Keyspace)}." +
-                                                     $"{FormatTableName(table.Name)}." +
-                                                     $"{cqlCommand.CommandName}");
+            // todo (sivukhin, 17.01.2019): Consider performance issues here
+            return driverMetricsProvider.WithContext($"{FormatKeyspaceName(table.KeyspaceName ?? table.GetSession().Keyspace)}")
+                                        .WithContext($"{FormatTableName(table.Name)}")
+                                        .WithContext($"{cqlCommand.CommandName}");
         }
 
         private static string FormatTableName(string tableName)
