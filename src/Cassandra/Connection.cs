@@ -15,9 +15,12 @@
 //
 
 using System;
+using System.Buffers;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
+using System.IO.Pipelines;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
@@ -428,10 +431,12 @@ namespace Cassandra
             _tcpSocket.Error += CancelPending;
             _tcpSocket.Closing += () => CancelPending(null);
             //Read and write event handlers are going to be invoked using IO Threads
-            _tcpSocket.Read += ReadHandler;
             _tcpSocket.WriteCompleted += WriteCompletedHandler;
             var protocolVersion = _serializer.ProtocolVersion;
             await _tcpSocket.Connect().ConfigureAwait(false);
+#pragma warning disable 4014
+            ReadHandler(_tcpSocket.ConnectionReader);
+#pragma warning restore 4014
             Response response;
             try
             {
@@ -467,23 +472,32 @@ namespace Cassandra
             _tcpSocket.Kill();
         }
 
-        private void ReadHandler(byte[] buffer, int bytesReceived)
+        private async Task ReadHandler(PipeReader connectionReader)
         {
-            if (_isCanceled)
+            while (true)
             {
-                //All pending operations have been canceled, there is no point in reading from the wire.
-                return;
+                if (_isCanceled)
+                {
+                    //All pending operations have been canceled, there is no point in reading from the wire.
+                    return;
+                }
+
+                //We are currently using an IO Thread
+                //Parse the data received
+                var readResult = await connectionReader.ReadAsync().ConfigureAwait(false);
+                var buffer = readResult.Buffer.ToArray();
+                var streamIdAvailable = ReadParse(buffer, buffer.Length);
+                connectionReader.AdvanceTo(readResult.Buffer.End);
+                //Console.Error.WriteLine($"Read parse latency: {timer.Elapsed}");
+                if (!streamIdAvailable)
+                {
+                    return;
+                }
+
+                //Process a next item in the queue if possible.
+                //Maybe there are there items in the write queue that were waiting on a fresh streamId
+                RunWriteQueue();
             }
-            //We are currently using an IO Thread
-            //Parse the data received
-            var streamIdAvailable = ReadParse(buffer, bytesReceived);
-            if (!streamIdAvailable)
-            {
-                return;
-            }
-            //Process a next item in the queue if possible.
-            //Maybe there are there items in the write queue that were waiting on a fresh streamId
-            RunWriteQueue();
         }
 
         /// <summary>
