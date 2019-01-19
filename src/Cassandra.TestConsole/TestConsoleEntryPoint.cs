@@ -49,6 +49,8 @@ namespace Cassandra.TestConsole
 
             MappingConfiguration.Global.Define<SongMappings>();
             var cluster = Cluster.Builder()
+                                 .WithPoolingOptions(new PoolingOptions().SetMaxRequestsPerConnection(30))
+                                 .WithSocketOptions(new SocketOptions())
                                  .AddContactPoints(ContactPoint)
                                  .WithAppMetrics(metrics)
                                  .Build();
@@ -74,6 +76,7 @@ namespace Cassandra.TestConsole
                 {
                     try
                     {
+                        Console.Error.WriteLine($"Start request execution from thread {Thread.CurrentThread.ManagedThreadId}");
                         var queryStopwatch = Stopwatch.StartNew();
                         await loadGenerator.GenerateLoad(table).ConfigureAwait(false);
                         timings.Add(queryStopwatch.Elapsed);
