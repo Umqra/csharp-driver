@@ -51,7 +51,7 @@ namespace LoadConsole
             var table = session.GetTable<SongCqlEntity>();
             table.CreateIfNotExists();
 
-            for (var iteration = 0; iteration < 10; iteration++)
+            for (var iteration = 0; iteration < 20; iteration++)
             {
                 var timer = Stopwatch.StartNew();
                 Task.WaitAll(Enumerable.Repeat(0, 100)

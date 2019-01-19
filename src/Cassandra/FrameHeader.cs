@@ -136,7 +136,7 @@ namespace Cassandra
         /// <summary>
         /// Gets the protocol version based on the first byte of the header
         /// </summary>
-        public static ProtocolVersion GetProtocolVersion(byte[] buffer)
+        public static ProtocolVersion GetProtocolVersion(ReadOnlySpan<byte> buffer)
         {
             return (ProtocolVersion)(buffer[0] & 0x7F);
         }

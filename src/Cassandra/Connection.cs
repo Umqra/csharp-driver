@@ -485,9 +485,7 @@ namespace Cassandra
                 //We are currently using an IO Thread
                 //Parse the data received
                 var readResult = await connectionReader.ReadAsync().ConfigureAwait(false);
-                var buffer = readResult.Buffer.ToArray();
-                var streamIdAvailable = ReadParse(buffer, buffer.Length);
-                connectionReader.AdvanceTo(readResult.Buffer.End);
+                var streamIdAvailable = ReadParse(readResult.Buffer);
                 //Console.Error.WriteLine($"Read parse latency: {timer.Elapsed}");
                 if (!streamIdAvailable)
                 {
@@ -504,9 +502,9 @@ namespace Cassandra
         /// Deserializes each frame header and copies the body bytes into a single buffer.
         /// </summary>
         /// <returns>True if a full operation (streamId) has been processed.</returns>
-        internal bool ReadParse(byte[] buffer, int length)
+        internal bool ReadParse(ReadOnlySequence<byte> byteSequence)
         {
-            if (length <= 0)
+            if (byteSequence.IsEmpty)
             {
                 return false;
             }
@@ -515,7 +513,7 @@ namespace Cassandra
             if (headerLength == 0)
             {
                 // The server replies the first message with the max protocol version supported
-                protocolVersion = FrameHeader.GetProtocolVersion(buffer);
+                protocolVersion = FrameHeader.GetProtocolVersion(byteSequence.First.Span);
                 _serializer.ProtocolVersion = protocolVersion;
                 headerLength = FrameHeader.GetSize(protocolVersion);
                 Volatile.Write(ref _frameHeaderSize, headerLength);
