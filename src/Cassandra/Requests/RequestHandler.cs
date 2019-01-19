@@ -379,7 +379,7 @@ namespace Cassandra.Requests
         {
             try
             {
-                // todo (umqra, 12.01.2019): We must avoid such situations
+                // todo (umqra, 12.01.2019): We must avoid coalescing operators...
                 var execution = new RequestExecution(this, _session, _request, Statement?.StatementMetricsProvider);
                 execution.Start();
                 _running.Add(execution);
@@ -437,6 +437,7 @@ namespace Cassandra.Requests
                     }
 
                     Logger.Info("Starting new speculative execution after {0}, last used host {1}", delay, _host.Address);
+                    // todo (sivukhin, 19.01.2019): Add more context in the metrics for speculative requests
                     StartNewExecution();
                 });
             }, null, delay);

@@ -96,6 +96,7 @@ namespace Cassandra.Requests
                 timeoutMillis = _parent.Statement.ReadTimeoutMillis;
             }
 
+            // todo (sivukhin, 19.01.2019): Slightly awkward order of arguments
             _operation = _connection.Send(request, callback, _driverMetricsProvider, timeoutMillis);
         }
 
