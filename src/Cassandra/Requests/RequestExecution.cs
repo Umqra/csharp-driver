@@ -60,8 +60,6 @@ namespace Cassandra.Requests
                         return;
                     }
                     _connection = t.Result;
-                    // todo (sivukhin, 17.01.2019): Are there any concurrency issues?
-                    _connection.ConnectionMetricsProvider = _driverMetricsProvider;
                     Send(_request, HandleResponse);
                 }, TaskContinuationOptions.ExecuteSynchronously);
                 return;
@@ -98,7 +96,7 @@ namespace Cassandra.Requests
                 timeoutMillis = _parent.Statement.ReadTimeoutMillis;
             }
 
-            _operation = _connection.Send(request, callback, timeoutMillis);
+            _operation = _connection.Send(request, callback, _driverMetricsProvider, timeoutMillis);
         }
 
         public void HandleResponse(Exception ex, Response response)
