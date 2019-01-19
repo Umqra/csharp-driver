@@ -21,10 +21,8 @@ namespace Cassandra.Metrics
         // todo (sivukhin, 10.01.2019): Consider avoiding lambdas in case of inability of compiler to optimize this calls
         public static async Task<T> Measure<T>(this IDriverTimer timer, Func<Task<T>> func)
         {
-            timer.StartRecording();
-            var result = await func().ConfigureAwait(false);
-            timer.EndRecording();
-            return result;
+            using (timer.MeasureInScope())
+                return await func().ConfigureAwait(false);
         }
     }
 }
