@@ -1,13 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO.Pipelines;
 using System.Linq;
 using System.Threading.Tasks;
+using Cassandra;
 using Cassandra.Data.Linq;
 using Cassandra.Mapping;
 using MoreLinq;
 
-namespace Cassandra.LoadConsole
+namespace LoadConsole
 {
     public class SongCqlEntity
     {
