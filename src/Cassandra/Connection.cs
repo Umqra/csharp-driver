@@ -17,6 +17,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -59,11 +60,11 @@ namespace Cassandra
         /// <summary>
         /// Stores the available stream ids.
         /// </summary>
-        private ConcurrentStack<short> _freeOperations;
+        private ConcurrentStackWithMetrics<short> _freeOperations;
         /// <summary> Contains the requests that were sent through the wire and that hasn't been received yet.</summary>
-        private ConcurrentDictionary<short, OperationState> _pendingOperations;
+        private ConcurrentDictionaryWithMetrics<short, OperationState> _pendingOperations;
         /// <summary> It contains the requests that could not be written due to streamIds not available</summary>
-        private ConcurrentQueue<OperationState> _writeQueue;
+        private ConcurrentQueueWithMetrics<OperationState> _writeQueue;
         private volatile string _keyspace;
         private TaskCompletionSource<bool> _keyspaceSwitchTcs;
         /// <summary>
@@ -76,6 +77,7 @@ namespace Cassandra
         private FrameHeader _receivingHeader;
         private int _writeState = WriteStateInit;
         private int _inFlight;
+
         /// <summary>
         /// The event that represents a event RESPONSE from a Cassandra node
         /// </summary>
@@ -164,9 +166,8 @@ namespace Cassandra
 
         public Configuration Configuration { get; set; }
 
-        // todo (umqra, 12.01.2019): Carefully inject metrics provider into the Connection class
-        // todo (umqra, 12.01.2019): We must try to inject metrics in as few places as possibly can
-        public IDriverMetricsProvider ConnectionMetricsProvider { get; set; } = EmptyDriverMetricsProvider.Instance;
+        // todo (sivukhin, 17.01.2019): Rename
+        public IDriverMetricsProvider GlobalConnectionMetricsProvider { get; }
         
         public Connection(Serializer serializer, IPEndPoint endpoint, Configuration configuration)
         {
@@ -183,21 +184,7 @@ namespace Cassandra
             _tcpSocket = new TcpSocket(endpoint, configuration.SocketOptions, configuration.ProtocolOptions.SslOptions);
             _idleTimer = new Timer(IdleTimeoutHandler, null, Timeout.Infinite, Timeout.Infinite);
             
-            var connectionMetricsProvider = configuration.DriverMetricsProvider.WithContext(Address.ToString());
-            // todo (sivukhin, 17.01.2019): Efficiency of .Count operation for ConcurrentDictionary
-//            var writeQueueSizeHistogram = connectionMetricsProvider.Histogram("WriteQueueSize");
-//            var pendingOperationsHistogram = connectionMetricsProvider.Histogram("PendingOperationsCount");
-//            var freeOperationsHistogram = connectionMetricsProvider.Histogram("FreeOperationsCount");
-//            Task.Factory.StartNew(async () =>
-//            {
-//                while (true)
-//                {
-//                    writeQueueSizeHistogram.Update(_writeQueue.Count);
-//                    pendingOperationsHistogram.Update(_pendingOperations.Count);
-//                    freeOperationsHistogram.Update(_freeOperations.Count);
-//                    await Task.Delay(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
-//                }
-//            }, TaskCreationOptions.LongRunning);
+            GlobalConnectionMetricsProvider = configuration.DriverMetricsProvider.WithContext(Address.ToString());
         }
 
         private void IncrementInFlight()
@@ -411,7 +398,7 @@ namespace Cassandra
                 {
                     OnIdleRequestException(ex);
                 }
-            });
+            }, EmptyDriverMetricsProvider.Instance);
         }
 
 
@@ -423,9 +410,10 @@ namespace Cassandra
         /// <exception cref="UnsupportedProtocolVersionException"></exception>
         public async Task<Response> Open()
         {
-            _freeOperations = new ConcurrentStack<short>(Enumerable.Range(0, MaxConcurrentRequests).Select(s => (short)s).Reverse());
-            _pendingOperations = new ConcurrentDictionary<short, OperationState>();
-            _writeQueue = new ConcurrentQueue<OperationState>();
+            _freeOperations = new ConcurrentStackWithMetrics<short>(Enumerable.Range(0, MaxConcurrentRequests).Select(s => (short) s).Reverse(),
+                GlobalConnectionMetricsProvider.WithContext("FreeOperations"));
+            _pendingOperations = new ConcurrentDictionaryWithMetrics<short, OperationState>(GlobalConnectionMetricsProvider.WithContext("PendingOperations"));
+            _writeQueue = new ConcurrentQueueWithMetrics<OperationState>(GlobalConnectionMetricsProvider.WithContext("WriteQueue"));
 
             if (Options.CustomCompressor != null)
             {
@@ -490,6 +478,7 @@ namespace Cassandra
 
         private void ReadHandler(byte[] buffer, int bytesReceived)
         {
+            Console.Error.WriteLine($"ReadHandler(...) called from thead: {Thread.CurrentThread.Name} ({Thread.CurrentThread.ManagedThreadId})");
             if (_isCanceled)
             {
                 //All pending operations have been canceled, there is no point in reading from the wire.
@@ -497,13 +486,15 @@ namespace Cassandra
             }
             //We are currently using an IO Thread
             //Parse the data received
+            var stopwatch = Stopwatch.StartNew();
             var streamIdAvailable = ReadParse(buffer, bytesReceived);
+            Console.Error.WriteLine($"Read parse elapsed: {stopwatch.Elapsed}");
             if (!streamIdAvailable)
             {
                 return;
             }
             //Process a next item in the queue if possible.
-            //Maybe there are there items in the write queue that were waiting on a fresh streamId
+            //Maybe there are items in the write queue that were waiting on a fresh streamId
             RunWriteQueue();
         }
 
@@ -578,6 +569,7 @@ namespace Cassandra
                 operationCallbacks.AddLast(CreateResponseAction(header, callback));
                 offset += remainingBodyLength;
             }
+
             return InvokeReadCallbacks(stream, operationCallbacks);
         }
 
@@ -724,36 +716,37 @@ namespace Cassandra
         public Task<Response> Send(IRequest request, int timeoutMillis = Timeout.Infinite)
         {
             var tcs = new TaskCompletionSource<Response>();
-            Send(request, tcs.TrySet, timeoutMillis);
+            Send(request, tcs.TrySet, EmptyDriverMetricsProvider.Instance, timeoutMillis);
             return tcs.Task;
         }
 
         /// <summary>
         /// Sends a new request if possible and executes the callback when the response is parsed. If it is not possible it queues it up.
         /// </summary>
-        public OperationState Send(IRequest request, Action<Exception, Response> callback, int timeoutMillis = Timeout.Infinite)
+        public OperationState Send(IRequest request, Action<Exception, Response> callback, IDriverMetricsProvider driverMetricsProvider, int timeoutMillis = Timeout.Infinite)
         {
-            using (ConnectionMetricsProvider.Timer("QueueRequest").MeasureInScope())
+            Console.Error.WriteLine("Enter to the Send(...) method");
+            if (_isCanceled)
             {
-                if (_isCanceled)
-                {
-                    // Avoid calling back before returning
-                    Task.Factory.StartNew(() => callback(new SocketException((int) SocketError.NotConnected), null),
-                        CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
-                    return null;
-                }
-
-                IncrementInFlight();
-
-                var state = new OperationState(callback, ConnectionMetricsProvider.WithContext("RequestLatency"))
-                {
-                    Request = request,
-                    TimeoutMillis = timeoutMillis > 0 ? timeoutMillis : Configuration.SocketOptions.ReadTimeoutMillis
-                };
-                _writeQueue.Enqueue(state);
-                RunWriteQueue();
-                return state;
+                // Avoid calling back before returning
+                Task.Factory.StartNew(() => callback(new SocketException((int) SocketError.NotConnected), null),
+                    CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
+                return null;
             }
+
+            IncrementInFlight();
+
+            // todo (sivukhin, 19.01.2019): IDriverMetricsProvider suddenly propagated to the many constructors of internal objects. This is strange
+            // todo (sivukhin, 17.01.2019): Rename from RequestLatency to Request
+            var state = new OperationState(callback, driverMetricsProvider.WithContext("RequestLatency"))
+            {
+                Request = request,
+                TimeoutMillis = timeoutMillis > 0 ? timeoutMillis : Configuration.SocketOptions.ReadTimeoutMillis,
+            };
+            _writeQueue.Enqueue(state);
+            Console.Error.WriteLine($"{DateTime.Now:O}, write queue size: {_writeQueue.Count}");
+            RunWriteQueue();
+            return state;
         }
 
         private void RunWriteQueue()
@@ -768,6 +761,7 @@ namespace Cassandra
             {
                 // Probably there is an item in the write queue, we should cancel pending
                 // Avoid canceling in the user thread
+                // todo (sivukhin, 19.01.2019): What does it mean: avoid cancelling in the user thread?
                 Task.Factory.StartNew(() => CancelPending(null), CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
                 return;   
             }
@@ -784,9 +778,12 @@ namespace Cassandra
             var operationsToWrite = new List<OperationState>();
             while (totalLength < CoalescingThreshold)
             {
+                //Console.Error.WriteLine($"Current total length: {totalLength}");
                 OperationState state;
                 if (!_writeQueue.TryDequeue(out state))
                 {
+                    if (totalLength != 0)
+                        GlobalConnectionMetricsProvider.Meter("NoMoreItemsInQueue").Mark();
                     //No more items in the write queue
                     break;
                 }
@@ -800,7 +797,8 @@ namespace Cassandra
                     break;
                 }
                 Logger.Verbose("Sending #{0} for {1} to {2}", streamId, state.Request.GetType().Name, Address);
-                state.RemovedFromQueue();
+                // todo (sivukhin, 17.01.2019): Refactor!
+                state.SendingStarted();
                 if (_isCanceled)
                 {
                     state.InvokeCallback(new SocketException((int) SocketError.NotConnected));
@@ -815,6 +813,7 @@ namespace Cassandra
                     stream = stream ?? (RecyclableMemoryStream) Configuration.BufferPool.GetStream(StreamWriteTag);
                     operationsToWrite.Add(state);
                     frameLength = state.Request.WriteFrame(streamId, stream, _serializer);
+                    GlobalConnectionMetricsProvider.Histogram("FrameLength").Update(frameLength);
                     if (state.TimeoutMillis > 0)
                     {
                         var requestTimeout = Configuration.Timer.NewTimeout(OnTimeout, streamId, state.TimeoutMillis);
@@ -835,6 +834,8 @@ namespace Cassandra
                 state.Request = null;
                 totalLength += frameLength;
             }
+
+            // todo (sivukhin, 19.01.2019): Interesting situation...
             if (totalLength == 0L)
             {
                 // Nothing to write, set the queue as not running
@@ -855,11 +856,18 @@ namespace Cassandra
                 }
                 return;
             }
+
+            Console.Error.WriteLine($"Total length: {totalLength}");
+            GlobalConnectionMetricsProvider.Histogram("TotalLength").Update(totalLength);
             //Write and close the stream when flushed
             // ReSharper disable once PossibleNullReferenceException : if totalLength > 0 the stream is initialized
-            _tcpSocket.Write(stream, () => stream.Dispose());
-            foreach (var operation in operationsToWrite)
-                operation.CompleteSending();
+            _tcpSocket.Write(stream, () =>
+            {
+                // todo (sivukhin, 17.01.2019): Aaargh....closure!!!!!
+                stream.Dispose();
+                foreach (var operation in operationsToWrite)
+                    operation.CompleteSending();
+            });
         }
 
         /// <summary>

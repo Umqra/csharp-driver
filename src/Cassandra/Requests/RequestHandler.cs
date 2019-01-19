@@ -377,6 +377,7 @@ namespace Cassandra.Requests
         /// </summary>
         private void StartNewExecution()
         {
+            Console.Error.WriteLine("StartNewExecution() called");
             try
             {
                 // todo (umqra, 12.01.2019): We must avoid coalescing operators...

@@ -102,6 +102,7 @@ namespace Cassandra.Requests
 
         public void HandleResponse(Exception ex, Response response)
         {
+            Console.Error.WriteLine($"Handle response in the thread: {Thread.CurrentThread.ManagedThreadId}");
             if (_parent.HasCompleted())
             {
                 //Do nothing else, another execution finished already set the response

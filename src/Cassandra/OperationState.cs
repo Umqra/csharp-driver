@@ -124,8 +124,8 @@ namespace Cassandra
             var timeout = _timeout;
             //Cancel it if it hasn't expired
             timeout?.Cancel();
-            _totalExecutionTimer.EndRecording();
             _receivingTimer.EndRecording();
+            _totalExecutionTimer.EndRecording();
         }
 
         /// <summary>
@@ -212,7 +212,7 @@ namespace Cassandra
             }, CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
         }
 
-        public void RemovedFromQueue()
+        public void SendingStarted()
         {
             _queueStallTimer.EndRecording();
             _sendingTimer.StartRecording();

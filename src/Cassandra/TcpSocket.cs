@@ -304,6 +304,7 @@ namespace Cassandra
             //Emit event
             if (Read != null)
             {
+                Console.Error.WriteLine($"Bytes transferred: {e.BytesTransferred}");
                 Read(e.Buffer, e.BytesTransferred);
             }
 
