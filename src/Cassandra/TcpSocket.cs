@@ -15,13 +15,10 @@
 //
 
 using System;
-using System.Diagnostics;
 using System.IO;
-using System.IO.Pipelines;
 using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
-using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Tasks;
@@ -39,12 +36,12 @@ namespace Cassandra
     {
         private static Logger _logger = new Logger(typeof(TcpSocket));
         private Socket _socket;
-        private Pipe _socketPipe;
+        private SocketAsyncEventArgs _receiveSocketEvent;
         private SocketAsyncEventArgs _sendSocketEvent;
         private Stream _socketStream;
+        private byte[] _receiveBuffer;
         private volatile bool _isClosing;
         private Action _writeFlushCallback;
-        private int _receiveBufferSize;
 
         public IPEndPoint IPEndPoint { get; protected set; }
 
@@ -52,7 +49,10 @@ namespace Cassandra
 
         public SSLOptions SSLOptions { get; set; }
 
-        public PipeReader ConnectionReader => _socketPipe.Reader;
+        /// <summary>
+        /// Event that gets fired when new data is received.
+        /// </summary>
+        public event Action<byte[], int> Read;
 
         /// <summary>
         /// Event that gets fired when a write async request have been completed.
@@ -87,28 +87,23 @@ namespace Cassandra
             {
                 _socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, Options.KeepAlive.Value);
             }
-
             if (Options.SoLinger != null)
             {
                 _socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.Linger, new LingerOption(true, Options.SoLinger.Value));
             }
-
             if (Options.ReceiveBufferSize != null)
             {
                 _socket.ReceiveBufferSize = Options.ReceiveBufferSize.Value;
             }
-
             if (Options.SendBufferSize != null)
             {
                 _socket.SendBufferSize = Options.SendBufferSize.Value;
             }
-
             if (Options.TcpNoDelay != null)
             {
                 _socket.NoDelay = Options.TcpNoDelay.Value;
             }
-
-            _receiveBufferSize = _socket.ReceiveBufferSize;
+            _receiveBuffer = new byte[_socket.ReceiveBufferSize];
         }
 
         /// <summary>
@@ -118,7 +113,7 @@ namespace Cassandra
         public async Task<bool> Connect()
         {
             var tcs = TaskHelper.TaskCompletionSourceWithTimeout<bool>(
-                Options.ConnectTimeoutMillis,
+                Options.ConnectTimeoutMillis, 
                 () => new SocketException((int) SocketError.TimedOut));
             var socketConnectTask = tcs.Task;
             var eventArgs = new SocketAsyncEventArgs
@@ -130,10 +125,9 @@ namespace Cassandra
             {
                 if (e.SocketError != SocketError.Success)
                 {
-                    tcs.TrySetException(new SocketException((int) e.SocketError));
+                    tcs.TrySetException(new SocketException((int)e.SocketError));
                     return;
                 }
-
                 tcs.TrySetResult(true);
                 e.Dispose();
             };
@@ -144,7 +138,6 @@ namespace Cassandra
                 // Make the task complete asynchronously
                 Task.Run(() => tcs.TrySetResult(true)).Forget();
             }
-
             try
             {
                 await socketConnectTask.ConfigureAwait(false);
@@ -153,12 +146,10 @@ namespace Cassandra
             {
                 eventArgs.Dispose();
             }
-
             if (SSLOptions != null)
             {
                 return await ConnectSsl().ConfigureAwait(false);
             }
-
             // Prepare read and write
             // There are 2 modes: using SocketAsyncEventArgs (most performant) and Stream mode
             if (Options.UseStreamMode)
@@ -166,20 +157,17 @@ namespace Cassandra
                 _logger.Verbose("Socket connected, start reading using Stream interface");
                 //Stream mode: not the most performant but it is a choice
                 _socketStream = new NetworkStream(_socket);
-#pragma warning disable 4014
                 ReceiveAsync();
-#pragma warning restore 4014
                 return true;
             }
-
             _logger.Verbose("Socket connected, start reading using SocketEventArgs interface");
             //using SocketAsyncEventArgs
+            _receiveSocketEvent = new SocketAsyncEventArgs();
+            _receiveSocketEvent.SetBuffer(_receiveBuffer, 0, _receiveBuffer.Length);
+            _receiveSocketEvent.Completed += OnReceiveCompleted;
             _sendSocketEvent = new SocketAsyncEventArgs();
             _sendSocketEvent.Completed += OnSendCompleted;
-            _socketPipe = new Pipe();
-#pragma warning disable 4014
             ReceiveAsync();
-#pragma warning restore 4014
             return true;
         }
 
@@ -215,9 +203,9 @@ namespace Cassandra
                 () => new TimeoutException("The timeout period elapsed prior to completion of SSL authentication operation."));
 
             sslStream.AuthenticateAsClientAsync(targetHost,
-                         SSLOptions.CertificateCollection,
-                         SSLOptions.SslProtocol,
-                         SSLOptions.CheckCertificateRevocation)
+                                                SSLOptions.CertificateCollection,
+                                                SSLOptions.SslProtocol,
+                                                SSLOptions.CheckCertificateRevocation)
                      .ContinueWith(t =>
                      {
                          if (t.Exception != null)
@@ -227,7 +215,6 @@ namespace Cassandra
                              tcs.TrySetException(t.Exception.InnerException);
                              return;
                          }
-
                          tcs.TrySetResult(true);
                      }, TaskContinuationOptions.ExecuteSynchronously)
                      // Avoid awaiting as it may never yield
@@ -235,9 +222,7 @@ namespace Cassandra
 
             await tcs.Task.ConfigureAwait(false);
             _logger.Verbose("SSL authentication successful");
-#pragma warning disable 4014
             ReceiveAsync();
-#pragma warning restore 4014
             return true;
         }
 
@@ -245,21 +230,15 @@ namespace Cassandra
         /// Begins an asynchronous request to receive data from a connected Socket object.
         /// It handles the exceptions in case there is one.
         /// </summary>
-        protected virtual async Task ReceiveAsync()
+        protected virtual void ReceiveAsync()
         {
-            while (true)
+            //Receive the next bytes
+            if (_receiveSocketEvent != null)
             {
-                var writer = _socketPipe.Writer;
+                var willRaiseEvent = true;
                 try
                 {
-                    var memory = writer.GetMemory(_receiveBufferSize);
-                    MemoryMarshal.TryGetArray((ReadOnlyMemory<byte>) memory, out var arraySegment);
-
-                    var bytesRead = await _socket.ReceiveAsync(arraySegment, SocketFlags.None).ConfigureAwait(false);
-                    if (bytesRead == 0)
-                        continue;
-                    writer.Advance(bytesRead);
-                    await writer.FlushAsync();
+                    willRaiseEvent = _socket.ReceiveAsync(_receiveSocketEvent);
                 }
                 catch (ObjectDisposedException)
                 {
@@ -276,6 +255,24 @@ namespace Cassandra
                 {
                     OnError(ex);
                 }
+                if (!willRaiseEvent)
+                {
+                    OnReceiveCompleted(this, _receiveSocketEvent);
+                }
+            }
+            else
+            {
+                // Stream mode
+                try
+                {
+                    _socketStream
+                        .ReadAsync(_receiveBuffer, 0, _receiveBuffer.Length)
+                        .ContinueWith(OnReceiveStreamCallback, TaskContinuationOptions.ExecuteSynchronously);
+                }
+                catch (Exception ex)
+                {
+                    HandleStreamException(ex);
+                }
             }
         }
 
@@ -288,6 +285,64 @@ namespace Cassandra
         }
 
         /// <summary>
+        /// Handles the receive completed event
+        /// </summary>
+        protected void OnReceiveCompleted(object sender, SocketAsyncEventArgs e)
+        {
+            if (e.SocketError != SocketError.Success)
+            {
+                //There was a socket error or the connection is being closed.
+                OnError(null, e.SocketError);
+                return;
+            }
+            if (e.BytesTransferred == 0)
+            {
+                OnClosing();
+                return;
+            }
+
+            //Emit event
+            if (Read != null)
+            {
+                Read(e.Buffer, e.BytesTransferred);
+            }
+
+            ReceiveAsync();
+        }
+
+        /// <summary>
+        /// Handles the callback for Completed or Cancelled Task on Stream mode
+        /// </summary>
+        protected void OnReceiveStreamCallback(Task<int> readTask)
+        {
+            if (readTask.Exception != null)
+            {
+                readTask.Exception.Handle(_ => true);
+                HandleStreamException(readTask.Exception.InnerException);
+                return;
+            }
+            var bytesRead = readTask.Result;
+            if (bytesRead == 0)
+            {
+                OnClosing();
+                return;
+            }
+            //Emit event
+            try
+            {
+                if (Read != null)
+                {
+                    Read(_receiveBuffer, bytesRead);
+                }
+            }
+            catch (Exception ex)
+            {
+                OnError(ex);
+            }
+            ReceiveAsync();
+        }
+
+        /// <summary>
         /// Handles exceptions that the methods <c>NetworkStream.ReadAsync()</c> and <c>NetworkStream.WriteAsync()</c> can throw.
         /// </summary>
         private void HandleStreamException(Exception ex)
@@ -296,22 +351,19 @@ namespace Cassandra
             {
                 if (ex.InnerException is SocketException)
                 {
-                    OnError((SocketException) ex.InnerException);
+                    OnError((SocketException)ex.InnerException);
                     return;
                 }
-
                 // Wrapped ObjectDisposedException and others: we can consider it as not connected
                 OnError(null, SocketError.NotConnected);
                 return;
             }
-
             if (ex is ObjectDisposedException)
             {
                 // Wrapped ObjectDisposedException and others: we can consider it as not connected
                 OnError(null, SocketError.NotConnected);
                 return;
             }
-
             OnError(ex);
         }
 
@@ -324,7 +376,6 @@ namespace Cassandra
             {
                 OnError(null, e.SocketError);
             }
-
             OnWriteFlushed();
             if (WriteCompleted != null)
             {
@@ -343,7 +394,6 @@ namespace Cassandra
                 HandleStreamException(writeTask.Exception.InnerException);
                 return;
             }
-
             OnWriteFlushed();
             if (WriteCompleted != null)
             {
@@ -358,18 +408,18 @@ namespace Cassandra
             {
                 Closing.Invoke();
             }
-
-            if (_sendSocketEvent != null)
+            if (_receiveSocketEvent != null)
             {
                 //It is safe to call SocketAsyncEventArgs.Dispose() more than once
                 _sendSocketEvent.Dispose();
+                _receiveSocketEvent.Dispose();
             }
             else if (_socketStream != null)
             {
                 _socketStream.Dispose();
             }
-
             //dereference to make the byte array GC-able as soon as possible
+            _receiveBuffer = null;
         }
 
         private void OnWriteFlushed()
@@ -389,11 +439,10 @@ namespace Cassandra
             Interlocked.Exchange(ref _writeFlushCallback, onBufferFlush);
             if (_isClosing)
             {
-                OnError(new SocketException((int) SocketError.Shutdown));
+                OnError(new SocketException((int)SocketError.Shutdown));
                 OnWriteFlushed();
                 return;
             }
-
             if (_sendSocketEvent != null)
             {
                 _sendSocketEvent.BufferList = stream.GetBufferList();
@@ -417,7 +466,6 @@ namespace Cassandra
                 {
                     OnError(ex);
                 }
-
                 if (!isWritePending)
                 {
                     OnSendCompleted(this, _sendSocketEvent);
@@ -425,7 +473,7 @@ namespace Cassandra
             }
             else
             {
-                var length = (int) stream.Length;
+                var length = (int)stream.Length;
                 try
                 {
                     _socketStream
@@ -450,7 +498,6 @@ namespace Cassandra
             {
                 return;
             }
-
             _isClosing = true;
             try
             {
@@ -462,7 +509,6 @@ namespace Cassandra
             {
                 // Shutdown might throw an exception if the socket was not open-open
             }
-
             try
             {
                 _socket.Dispose();
@@ -471,12 +517,12 @@ namespace Cassandra
             {
                 //We should not mind if socket's Close method throws an exception
             }
-
-            if (_sendSocketEvent != null)
+            if (_receiveSocketEvent != null)
             {
                 //It is safe to call SocketAsyncEventArgs.Dispose() more than once
                 //Also checked: .NET 4.0, .NET 4.5 and Mono 3.10 and 3.12 implementations
                 _sendSocketEvent.Dispose();
+                _receiveSocketEvent.Dispose();
             }
         }
     }
