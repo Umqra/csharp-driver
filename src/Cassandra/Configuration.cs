@@ -18,6 +18,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Cassandra.Connections;
+using Cassandra.Metrics;
+using Cassandra.Metrics.StubImpl;
 using Cassandra.Requests;
 using Cassandra.Serialization;
 using Cassandra.SessionManagement;
@@ -115,6 +117,8 @@ namespace Cassandra
         
         internal IControlConnectionFactory ControlConnectionFactory { get; }
 
+        internal MetricsRegistry MetricsRegistry { get; }
+
         internal Configuration() :
             this(Policies.DefaultPolicies,
                  new ProtocolOptions(),
@@ -149,7 +153,8 @@ namespace Cassandra
                                IHostConnectionPoolFactory hostConnectionPoolFactory = null,
                                IRequestExecutionFactory requestExecutionFactory = null,
                                IConnectionFactory connectionFactory = null,
-                               IControlConnectionFactory controlConnectionFactory = null)
+                               IControlConnectionFactory controlConnectionFactory = null,
+                               IDriverMetricsProvider driverMetricsProvider = null)
         {
             AddressTranslator = addressTranslator ?? throw new ArgumentNullException(nameof(addressTranslator));
             QueryOptions = queryOptions ?? throw new ArgumentNullException(nameof(queryOptions));
@@ -174,6 +179,7 @@ namespace Cassandra
             // to create the instance.
             BufferPool = new RecyclableMemoryStreamManager(16 * 1024, 256 * 1024, ProtocolOptions.MaximumFrameLength);
             Timer = new HashedWheelTimer();
+            MetricsRegistry = new MetricsRegistry(driverMetricsProvider ?? new EmptyDriverMetricsProvider());
         }
 
         /// <summary>
