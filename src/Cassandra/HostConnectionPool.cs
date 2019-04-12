@@ -123,7 +123,7 @@ namespace Cassandra
             _timer = config.Timer;
             _reconnectionSchedule = config.Policies.ReconnectionPolicy.NewSchedule();
             _expectedConnectionLength = 1;
-            _hostLevelMetricsRegistry = config.MetricsRegistry.GetHostLevelMetrics();
+            _hostLevelMetricsRegistry = config.MetricsRegistry.GetHostLevelMetrics(host);
         }
 
         /// <summary>

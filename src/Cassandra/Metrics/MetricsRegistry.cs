@@ -1,3 +1,5 @@
+using System.Net;
+
 namespace Cassandra.Metrics
 {
     public class MetricsRegistry
@@ -9,9 +11,15 @@ namespace Cassandra.Metrics
             _driverMetricsProvider = driverMetricsProvider;
         }
 
-        public HostLevelMetricsRegistry GetHostLevelMetrics()
+        public HostLevelMetricsRegistry GetHostLevelMetrics(Host host)
         {
-            return new HostLevelMetricsRegistry(_driverMetricsProvider);
+            var hostMetricsProvider = _driverMetricsProvider.WithContext("nodes").WithContext(BuildHostMetricPath(host));
+            return new HostLevelMetricsRegistry(hostMetricsProvider);
+        }
+
+        private string BuildHostMetricPath(Host host)
+        {
+            return $"{host.Address.ToString().Replace('.', '_')}";
         }
     }
 }
