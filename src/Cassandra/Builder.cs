@@ -18,6 +18,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using Cassandra.Metrics;
+using Cassandra.Metrics.StubImpl;
 using Cassandra.Requests;
 using Cassandra.Serialization;
 using Cassandra.SessionManagement;
@@ -57,6 +59,7 @@ namespace Cassandra
         private int _maxSchemaAgreementWaitSeconds = ProtocolOptions.DefaultMaxSchemaAgreementWaitSeconds;
         private IStartupOptionsFactory _startupOptionsFactory = new StartupOptionsFactory();
         private ISessionFactoryBuilder<IInternalCluster, IInternalSession> _sessionFactoryBuilder = new SessionFactoryBuilder();
+        private IDriverMetricsProvider _driverMetricsProvider = new EmptyDriverMetricsProvider();
 
         /// <summary>
         ///  The pooling options used by this builder.
@@ -133,7 +136,8 @@ namespace Cassandra
                 _queryOptions,
                 _addressTranslator,
                 _startupOptionsFactory,
-                _sessionFactoryBuilder);
+                _sessionFactoryBuilder,
+                _driverMetricsProvider);
             if (_typeSerializerDefinitions != null)
             {
                 config.TypeSerializers = _typeSerializerDefinitions.Definitions;
@@ -673,6 +677,15 @@ namespace Cassandra
             _maxSchemaAgreementWaitSeconds = maxSchemaAgreementWaitSeconds;
             return this;
         }
+
+        // todo (sivukhin, 12.04.2019): Unify client API for all target frameworks 
+#if NETSTANDARD2_0
+        public Builder WithAppMetrics(App.Metrics.IMetricsRoot metricsRoot)
+        {
+            _driverMetricsProvider = new Metrics.AppMetricsImpl.AppMetricsDriverMetricsProvider(metricsRoot);
+            return this;
+        }
+#endif
 
         /// <summary>
         ///  Build the cluster with the configured set of initial contact points and policies.

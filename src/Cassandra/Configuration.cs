@@ -16,7 +16,8 @@
 
 using System;
 using System.Collections.Generic;
-
+using Cassandra.Metrics;
+using Cassandra.Metrics.StubImpl;
 using Cassandra.Requests;
 using Cassandra.Serialization;
 using Cassandra.SessionManagement;
@@ -104,6 +105,8 @@ namespace Cassandra
 
         internal ISessionFactoryBuilder<IInternalCluster, IInternalSession> SessionFactoryBuilder { get; }
 
+        internal MetricsRegistry MetricsRegistry { get; }
+
         internal Configuration() :
             this(Policies.DefaultPolicies,
                  new ProtocolOptions(),
@@ -133,7 +136,8 @@ namespace Cassandra
                                QueryOptions queryOptions,
                                IAddressTranslator addressTranslator,
                                IStartupOptionsFactory startupOptionsFactory,
-                               ISessionFactoryBuilder<IInternalCluster, IInternalSession> sessionFactoryBuilder)
+                               ISessionFactoryBuilder<IInternalCluster, IInternalSession> sessionFactoryBuilder,
+                               IDriverMetricsProvider driverMetricsProvider = null)
         {
             AddressTranslator = addressTranslator ?? throw new ArgumentNullException(nameof(addressTranslator));
             QueryOptions = queryOptions ?? throw new ArgumentNullException(nameof(queryOptions));
@@ -151,6 +155,7 @@ namespace Cassandra
             // to create the instance.
             BufferPool = new RecyclableMemoryStreamManager(16 * 1024, 256 * 1024, ProtocolOptions.MaximumFrameLength);
             Timer = new HashedWheelTimer();
+            MetricsRegistry = new MetricsRegistry(driverMetricsProvider ?? new EmptyDriverMetricsProvider());
         }
 
         /// <summary>
