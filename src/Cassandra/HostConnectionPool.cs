@@ -20,6 +20,7 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Collections;
+using Cassandra.Metrics;
 using Cassandra.Serialization;
 using Cassandra.Tasks;
 
@@ -82,6 +83,7 @@ namespace Cassandra
         private HashedWheelTimer.ITimeout _newConnectionTimeout;
         private TaskCompletionSource<IConnection> _connectionOpenTcs;
         private int _connectionIndex;
+        private HostLevelMetricsRegistry _hostLevelMetricsRegistry;
         private readonly int _maxRequestsPerConnection;
 
         public event Action<Host, HostConnectionPool> AllConnectionClosed;
@@ -121,6 +123,7 @@ namespace Cassandra
             _timer = config.Timer;
             _reconnectionSchedule = config.Policies.ReconnectionPolicy.NewSchedule();
             _expectedConnectionLength = 1;
+            _hostLevelMetricsRegistry = config.MetricsRegistry.GetHostLevelMetrics();
         }
 
         /// <summary>
