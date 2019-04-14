@@ -1,21 +1,22 @@
 namespace Cassandra.Metrics
 {
-    internal class RequestHostLevelMetricsRegistry
+    internal class RequestHostLevelMetricsRegistry : IRequestLevelMetricsRegistry
     {
         public RequestHostRetryDecisionMetrics Retries { get; }
         public RequestHostRetryDecisionMetrics Ignores { get; }
+        public RequestHostRetryDecisionMetrics Errors { get; }
 
-        public RequestHostLevelMetricsRegistry(IDriverMetricsProvider driverMetricsProvider, Host host)
+        public RequestHostLevelMetricsRegistry(IDriverMetricsProvider driverMetricsProvider)
         {
-            var nodeLevelDriverMetricsProvider = driverMetricsProvider
-                                                 .WithContext("nodes")
-                                                 .WithContext(MetricPathFormatExtensions.BuildHostMetricPath(host));
-            Retries = new RequestHostRetryDecisionMetrics(nodeLevelDriverMetricsProvider.WithContext("retries"));
-            Ignores = new RequestHostRetryDecisionMetrics(nodeLevelDriverMetricsProvider.WithContext("ignores"));
+            Retries = new RequestHostRetryDecisionMetrics(driverMetricsProvider.WithContext("retries"));
+            Ignores = new RequestHostRetryDecisionMetrics(driverMetricsProvider.WithContext("ignores"));
+            // todo(sivukhin, 14.04.2019): What about unsent and aborted errors?
+            Errors = new RequestHostRetryDecisionMetrics(driverMetricsProvider.WithContext("errors").WithContext("request"));
         }
 
         public void RecordRequestRetry(RetryDecision.RetryReasonType reason, RetryDecision.RetryDecisionType decision)
         {
+            Errors.RecordRequestRetry(reason);
             switch (decision)
             {
                 case RetryDecision.RetryDecisionType.Retry:

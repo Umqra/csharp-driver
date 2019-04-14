@@ -45,16 +45,12 @@ namespace Cassandra.Requests
         /// </summary>
         private volatile Host _host;
 
-        private IRequestLevelMetricsRegistry _requestLevelMetricsRegistry;
-
-        public RequestExecution(IRequestHandler parent, IInternalSession session, IRequest request,
-                                IRequestLevelMetricsRegistry requestLevelMetricsRegistry)
+        public RequestExecution(IRequestHandler parent, IInternalSession session, IRequest request)
         {
             _parent = parent;
             _session = session;
             _request = request;
             _host = null;
-            _requestLevelMetricsRegistry = requestLevelMetricsRegistry;
         }
 
         public void Cancel()
@@ -355,7 +351,7 @@ namespace Cassandra.Requests
             var (reason, decision) = RequestExecution.GetRetryDecisionWithReason(
                 ex, _parent.RetryPolicy, _parent.Statement, _session.Cluster.Configuration, _retryCount);
             // todo(sivukhin, 14.04.2019): Are there a situations where there is no _host available at the moment?
-            _requestLevelMetricsRegistry.RecordRequestRetry(_host, reason, decision.DecisionType);
+            _host.HostLevelMetricsRegistry.RequestLevelMetricsRegistry.RecordRequestRetry(reason, decision.DecisionType);
             switch (decision.DecisionType)
             {
                 case RetryDecision.RetryDecisionType.Rethrow:

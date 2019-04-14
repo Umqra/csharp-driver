@@ -172,7 +172,7 @@ namespace Cassandra.Tests
         private class ProxyRequestExecution : RequestExecution
         {
             public ProxyRequestExecution(IRequestHandler parent, IInternalSession session, IRequest request)
-                : base(parent, session, request, EmptyRequestLevelMetricsRegistry.Instance)
+                : base(parent, session, request)
             {
             }
 

@@ -18,6 +18,7 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading;
+using Cassandra.Metrics;
 
 namespace Cassandra
 {
@@ -102,18 +103,20 @@ namespace Cassandra
         /// </summary>
         public Version CassandraVersion { get; private set; }
 
+        internal IHostLevelMetricsRegistry HostLevelMetricsRegistry { get; }
+
         /// <summary>
         /// Creates a new instance of <see cref="Host"/>.
         /// </summary>
         // ReSharper disable once UnusedParameter.Local : Part of the public API
-        public Host(IPEndPoint address, IReconnectionPolicy reconnectionPolicy) : this(address)
+        public Host(IPEndPoint address, IReconnectionPolicy reconnectionPolicy) : this(address, EmptyMetricsRegistry.Instance)
         {
-
         }
-        
-        internal Host(IPEndPoint address)
+
+        internal Host(IPEndPoint address, IMetricsRegistry metricsRegistry)
         {
             Address = address ?? throw new ArgumentNullException(nameof(address));
+            HostLevelMetricsRegistry = metricsRegistry.GetHostLevelMetrics(this);
         }
 
         /// <summary>
