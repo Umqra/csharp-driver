@@ -9,5 +9,7 @@ namespace Cassandra.Metrics.Registries
         public IDriverCounter BytesSent { get; } = EmptyDriverCounter.Instance;
         public IDriverCounter BytesReceived { get; } = EmptyDriverCounter.Instance;
         public IDriverTimer CqlMessages { get; } = EmptyDriverTimer.Instance;
+        public IDriverCounter ConnectionInitErrors { get; } = EmptyDriverCounter.Instance;
+        public IDriverCounter AuthenticationErrors { get; } = EmptyDriverCounter.Instance;
     }
 }
