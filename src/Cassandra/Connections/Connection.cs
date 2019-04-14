@@ -423,7 +423,7 @@ namespace Cassandra.Connections
         {
             try
             {
-                return await DoOpen();
+                return await DoOpen().ConfigureAwait(false);
             }
             catch (AuthenticationException)
             {
