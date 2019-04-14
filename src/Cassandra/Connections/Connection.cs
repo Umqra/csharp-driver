@@ -421,6 +421,30 @@ namespace Cassandra.Connections
         /// <exception cref="UnsupportedProtocolVersionException"></exception>
         public async Task<Response> Open()
         {
+            try
+            {
+                return await DoOpen();
+            }
+            catch (AuthenticationException)
+            {
+                _connectionLevelMetricsRegistry.AuthenticationErrors.Increment(1);
+                throw;
+            }
+            catch (Exception e) when (e is SocketException || e is UnsupportedProtocolVersionException)
+            {
+                _connectionLevelMetricsRegistry.ConnectionInitErrors.Increment(1);
+                throw;
+            }
+        }
+        
+        /// <summary>
+        /// Initializes the connection.
+        /// </summary>
+        /// <exception cref="SocketException">Throws a SocketException when the connection could not be established with the host</exception>
+        /// <exception cref="AuthenticationException" />
+        /// <exception cref="UnsupportedProtocolVersionException"></exception>
+        public async Task<Response> DoOpen()
+        {
             _freeOperations = new ConcurrentStack<short>(Enumerable.Range(0, MaxConcurrentRequests).Select(s => (short)s).Reverse());
             _pendingOperations = new ConcurrentDictionary<short, OperationState>();
             _writeQueue = new ConcurrentQueue<OperationState>();

@@ -449,6 +449,7 @@ namespace Cassandra.Requests
                         return;
                     }
                     RequestHandler.Logger.Info("Starting new speculative execution after {0}, last used host {1}", delay, currentHost.Address);
+                    currentHost.HostLevelMetricsRegistry.SpeculativeExecutions.Increment(1);
                     StartNewExecution();
                 });
             }, null, delay);
