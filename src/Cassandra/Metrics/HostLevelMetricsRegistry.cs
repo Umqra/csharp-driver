@@ -2,65 +2,38 @@ namespace Cassandra.Metrics
 {
     internal class HostLevelMetricsRegistry
     {
-        public IDriverGauge OpenConnections { get; }
-        public IDriverGauge AvailableStreams { get; }
-        public IDriverGauge InFlight { get; }
+        private readonly IDriverMetricsProvider _driverMetricsProvider;
+        public IDriverGauge OpenConnections { get; private set; }
+        public IDriverGauge AvailableStreams { get; private set; }
+        public IDriverGauge InFlight { get; private set; }
         public IDriverCounter OtherErrors { get; }
-        public IDriverCounter Retries { get; }
-        public IDriverCounter RetriesOnAborted { get; }
-        public IDriverCounter RetriesOnReadTimeout { get; }
-        public IDriverCounter RetriesOnWriteTimeout { get; }
-        public IDriverCounter RetriesOnUnavailable { get; }
-        public IDriverCounter RetriesOnOtherError { get; }
-        public IDriverCounter Ignores { get; }
-        public IDriverCounter IgnoresOnAborted { get; }
-        public IDriverCounter IgnoresOnReadTimeout { get; }
-        public IDriverCounter IgnoresOnWriteTimeout { get; }
-        public IDriverCounter IgnoresOnUnavailable { get; }
-        public IDriverCounter IgnoresOnOtherError { get; }
         public IDriverCounter SpeculativeExecutions { get; }
         public IDriverCounter ConnectionInitErrors { get; }
         public IDriverCounter AuthenticationErrors { get; }
 
         public IConnectionLevelMetricsRegistry ConnectionLevelMetricsRegistry { get; }
 
-        public HostLevelMetricsRegistry(IDriverMetricsProvider driverMetricsProvider, Host host, IHostConnectionPool hostConnectionPool)
+        public HostLevelMetricsRegistry(IDriverMetricsProvider driverMetricsProvider, Host host)
         {
-            var metricsProviderWithContext = driverMetricsProvider
-                                             .WithContext("nodes")
-                                             .WithContext(BuildHostMetricPath(host));
-            // todo(sivukhin, 14.04.2019): Possible memory leak, because gauges will live until application termination 
-            OpenConnections = metricsProviderWithContext.Gauge("pool.open-connections", () => hostConnectionPool.OpenConnections);
-            AvailableStreams = metricsProviderWithContext.Gauge("pool.available-streams", () => hostConnectionPool.AvailableStreams);
-            InFlight = metricsProviderWithContext.Gauge("pool.in-flight", () => hostConnectionPool.InFlight);
+            _driverMetricsProvider = driverMetricsProvider
+                                     .WithContext("nodes")
+                                     .WithContext(MetricPathFormatExtensions.BuildHostMetricPath(host));
+            ConnectionLevelMetricsRegistry = new ConnectionLevelMetricsRegistry(_driverMetricsProvider);
 
-            ConnectionLevelMetricsRegistry = new ConnectionLevelMetricsRegistry(metricsProviderWithContext);
+            OtherErrors = _driverMetricsProvider.Counter("errors.request.others");
 
-            OtherErrors = metricsProviderWithContext.Counter("errors.request.others");
+            SpeculativeExecutions = _driverMetricsProvider.Counter("speculative-executions");
 
-            Retries = metricsProviderWithContext.Counter("retries.total");
-            RetriesOnAborted = metricsProviderWithContext.Counter("retries.aborted");
-            RetriesOnReadTimeout = metricsProviderWithContext.Counter("retries.read-timeout");
-            RetriesOnWriteTimeout = metricsProviderWithContext.Counter("retries.write-timeout");
-            RetriesOnUnavailable = metricsProviderWithContext.Counter("retries.unavailable");
-            RetriesOnOtherError = metricsProviderWithContext.Counter("retries.other");
-
-            Ignores = metricsProviderWithContext.Counter("ignores.total");
-            IgnoresOnAborted = metricsProviderWithContext.Counter("ignores.aborted");
-            IgnoresOnReadTimeout = metricsProviderWithContext.Counter("ignores.read-timeout");
-            IgnoresOnWriteTimeout = metricsProviderWithContext.Counter("ignores.write-timeout");
-            IgnoresOnUnavailable = metricsProviderWithContext.Counter("ignores.unavailable");
-            IgnoresOnOtherError = metricsProviderWithContext.Counter("ignores.other");
-
-            SpeculativeExecutions = metricsProviderWithContext.Counter("speculative-executions");
-
-            ConnectionInitErrors = metricsProviderWithContext.Counter("errors.connection.init");
-            AuthenticationErrors = metricsProviderWithContext.Counter("errors.connection.auth");
+            ConnectionInitErrors = _driverMetricsProvider.Counter("errors.connection.init");
+            AuthenticationErrors = _driverMetricsProvider.Counter("errors.connection.auth");
         }
 
-        private static string BuildHostMetricPath(Host host)
+        public void InitializeHostConnectionPoolMetrics(IHostConnectionPool hostConnectionPool)
         {
-            return $"{host.Address.ToString().Replace('.', '_')}";
+            // todo(sivukhin, 14.04.2019): Possible memory leak, because gauges will live until application termination
+            OpenConnections = _driverMetricsProvider.Gauge("pool.open-connections", () => hostConnectionPool.OpenConnections);
+            AvailableStreams = _driverMetricsProvider.Gauge("pool.available-streams", () => hostConnectionPool.AvailableStreams);
+            InFlight = _driverMetricsProvider.Gauge("pool.in-flight", () => hostConnectionPool.InFlight);
         }
     }
 }

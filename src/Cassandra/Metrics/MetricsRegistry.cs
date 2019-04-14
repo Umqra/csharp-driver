@@ -9,9 +9,14 @@ namespace Cassandra.Metrics
             _driverMetricsProvider = driverMetricsProvider;
         }
 
-        public HostLevelMetricsRegistry GetHostLevelMetrics(Host host, IHostConnectionPool hostConnectionPool)
+        public HostLevelMetricsRegistry GetHostLevelMetrics(Host host)
         {
-            return new HostLevelMetricsRegistry(_driverMetricsProvider, host, hostConnectionPool);
+            return new HostLevelMetricsRegistry(_driverMetricsProvider, host);
+        }
+
+        public RequestLevelMetricsRegistry GetRequestLevelMetrics()
+        {
+            return new RequestLevelMetricsRegistry(_driverMetricsProvider);
         }
 
         private string BuildHostMetricPath(Host host)
