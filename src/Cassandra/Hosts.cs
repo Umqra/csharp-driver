@@ -22,6 +22,7 @@ using System.Net;
 using System.Linq;
 using Cassandra.Collections;
 using Cassandra.Metrics;
+using Cassandra.Metrics.Registries;
 
 namespace Cassandra
 {

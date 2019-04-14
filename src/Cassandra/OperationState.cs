@@ -19,6 +19,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Metrics;
+using Cassandra.Metrics.DriverAbstractions;
 using Cassandra.Metrics.StubImpl;
 using Cassandra.Requests;
 using Cassandra.Responses;

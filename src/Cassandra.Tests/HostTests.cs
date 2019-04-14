@@ -6,6 +6,7 @@ using System.Net;
 using System.Text;
 using System.Threading;
 using Cassandra.Metrics;
+using Cassandra.Metrics.Registries;
 using NUnit.Framework;
 
 namespace Cassandra.Tests

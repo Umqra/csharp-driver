@@ -19,6 +19,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using Cassandra.Metrics;
+using Cassandra.Metrics.DriverAbstractions;
 using Cassandra.Metrics.StubImpl;
 using Cassandra.Requests;
 using Cassandra.Serialization;

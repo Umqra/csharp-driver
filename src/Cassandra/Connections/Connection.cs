@@ -25,6 +25,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Compression;
 using Cassandra.Metrics;
+using Cassandra.Metrics.Registries;
 using Cassandra.Requests;
 using Cassandra.Responses;
 using Cassandra.Serialization;

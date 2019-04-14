@@ -19,6 +19,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Threading;
 using Cassandra.Metrics;
+using Cassandra.Metrics.Registries;
 
 namespace Cassandra
 {
