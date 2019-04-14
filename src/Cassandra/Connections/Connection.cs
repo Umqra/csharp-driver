@@ -24,6 +24,7 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Compression;
+using Cassandra.Metrics;
 using Cassandra.Requests;
 using Cassandra.Responses;
 using Cassandra.Serialization;
@@ -82,6 +83,7 @@ namespace Cassandra.Connections
         private FrameHeader _receivingHeader;
         private int _writeState = Connection.WriteStateInit;
         private int _inFlight;
+        private IConnectionLevelMetricsRegistry _connectionLevelMetricsRegistry;
 
         /// <summary>
         /// The event that represents a event RESPONSE from a Cassandra node
@@ -177,17 +179,18 @@ namespace Cassandra.Connections
         public Configuration Configuration { get; set; }
 
         public Connection(Serializer serializer, IPEndPoint endpoint, Configuration configuration) :
-            this(serializer, endpoint, configuration, new StartupRequestFactory(configuration.StartupOptionsFactory))
+            this(serializer, endpoint, configuration, new StartupRequestFactory(configuration.StartupOptionsFactory), EmptyConnectionLevelMetricsRegistry.Instance)
         {
         }
 
-        internal Connection(Serializer serializer, IPEndPoint endpoint, Configuration configuration, IStartupRequestFactory startupRequestFactory)
+        internal Connection(Serializer serializer, IPEndPoint endpoint, Configuration configuration, IStartupRequestFactory startupRequestFactory, IConnectionLevelMetricsRegistry connectionLevelMetricsRegistry)
         {
             _serializer = serializer ?? throw new ArgumentNullException(nameof(serializer));
             Configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
             _startupRequestFactory = startupRequestFactory ?? throw new ArgumentNullException(nameof(startupRequestFactory));
             _tcpSocket = new TcpSocket(endpoint, configuration.SocketOptions, configuration.ProtocolOptions.SslOptions);
             _idleTimer = new Timer(IdleTimeoutHandler, null, Timeout.Infinite, Timeout.Infinite);
+            _connectionLevelMetricsRegistry = connectionLevelMetricsRegistry;
         }
 
         private void IncrementInFlight()
@@ -557,14 +560,21 @@ namespace Cassandra.Connections
                     break;
                 }
                 stream = stream ?? Configuration.BufferPool.GetStream(Connection.StreamReadTag);
-                var state = header.Opcode != EventResponse.OpCode
-                    ? RemoveFromPending(header.StreamId)
-                    : new OperationState(EventHandler);
+                // todo(sivukhin, 14.04.2019): Is it crucial to remove state from pending operations strictly before writing remaining body to the stream?
                 stream.Write(buffer, offset, remainingBodyLength);
-                // State can be null when the Connection is being closed concurrently
-                // The original callback is being called with an error, use a Noop here
-                var callback = state != null ? state.SetCompleted() : OperationState.Noop;
-                operationCallbacks.AddLast(CreateResponseAction(header, callback));
+                if (header.Opcode == EventResponse.OpCode)
+                {
+                    operationCallbacks.AddLast(CreateResponseAction(header, EventHandler));
+                }
+                else
+                {
+                    var state = RemoveFromPending(header.StreamId);
+                    // State can be null when the Connection is being closed concurrently
+                    // The original callback is being called with an error, use a Noop here
+                    var callback = state != null ? state.SetCompleted() : OperationState.Noop;
+                    operationCallbacks.AddLast(CreateResponseAction(header, callback));
+                }
+
                 offset += remainingBodyLength;
             }
             return Connection.InvokeReadCallbacks(stream, operationCallbacks);
@@ -732,11 +742,12 @@ namespace Cassandra.Connections
 
             IncrementInFlight();
 
-            var state = new OperationState(callback)
-            {
-                Request = request,
-                TimeoutMillis = timeoutMillis > 0 ? timeoutMillis : Configuration.SocketOptions.ReadTimeoutMillis
-            };
+            var state = new OperationState(
+                callback,
+                request,
+                timeoutMillis > 0 ? timeoutMillis : Configuration.SocketOptions.ReadTimeoutMillis,
+                _connectionLevelMetricsRegistry.CqlMessages
+            );
             _writeQueue.Enqueue(state);
             RunWriteQueue();
             return state;

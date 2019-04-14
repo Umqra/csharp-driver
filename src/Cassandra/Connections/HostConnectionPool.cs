@@ -249,7 +249,7 @@ namespace Cassandra.Connections
 
         public virtual async Task<IConnection> DoCreateAndOpen()
         {
-            var c = _config.ConnectionFactory.Create(_serializer, _host.Address, _config);
+            var c = _config.ConnectionFactory.Create(_serializer, _host.Address, _config, _hostLevelMetricsRegistry);
             try
             {
                 await c.Open().ConfigureAwait(false);
