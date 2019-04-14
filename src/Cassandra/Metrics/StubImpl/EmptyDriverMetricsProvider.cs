@@ -26,8 +26,9 @@ namespace Cassandra.Metrics.StubImpl
             return EmptyDriverCounter.Instance;
         }
 
-        public void Gauge(string metricName, Func<double> instantValue)
+        public IDriverGauge Gauge(string metricName, Func<double> instantValue)
         {
+            return EmptyDriverGauge.Instance;
         }
 
         public IDriverMetricsProvider WithContext(string context)
