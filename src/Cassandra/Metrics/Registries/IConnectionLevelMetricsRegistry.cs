@@ -7,5 +7,7 @@ namespace Cassandra.Metrics.Registries
         IDriverCounter BytesSent { get; }
         IDriverCounter BytesReceived { get; }
         IDriverTimer CqlMessages { get; }
+        IDriverCounter ConnectionInitErrors { get; }
+        IDriverCounter AuthenticationErrors { get; }
     }
 }

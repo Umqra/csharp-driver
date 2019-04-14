@@ -9,9 +9,6 @@ namespace Cassandra.Metrics.Registries
         public IDriverGauge AvailableStreams { get; private set; }
         public IDriverGauge InFlight { get; private set; }
         public IDriverCounter SpeculativeExecutions { get; }
-        public IDriverCounter ConnectionInitErrors { get; }
-        public IDriverCounter AuthenticationErrors { get; }
-
         public IConnectionLevelMetricsRegistry ConnectionLevelMetricsRegistry { get; }
         public IRequestLevelMetricsRegistry RequestLevelMetricsRegistry { get; }
 
@@ -24,9 +21,6 @@ namespace Cassandra.Metrics.Registries
             RequestLevelMetricsRegistry = new RequestHostLevelMetricsRegistry(_driverMetricsProvider);
 
             SpeculativeExecutions = _driverMetricsProvider.Counter("speculative-executions");
-
-            ConnectionInitErrors = _driverMetricsProvider.Counter("errors.connection.init");
-            AuthenticationErrors = _driverMetricsProvider.Counter("errors.connection.auth");
         }
 
         public void InitializeHostConnectionPoolGauges(IHostConnectionPool hostConnectionPool)
