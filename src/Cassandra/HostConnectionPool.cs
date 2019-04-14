@@ -263,7 +263,7 @@ namespace Cassandra
 
         public virtual async Task<IConnection> DoCreateAndOpen()
         {
-            var c = new Connection(_serializer, _host.Address, _config);
+            var c = new Connection(_serializer, _host.Address, _config, _hostLevelMetricsRegistry);
             try
             {
                 await c.Open().ConfigureAwait(false);

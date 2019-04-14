@@ -14,17 +14,15 @@
 //   limitations under the License.
 //
 
-﻿using System;
+using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-﻿using System.Threading;
-﻿using System.Threading.Tasks;
-﻿using Cassandra.Requests;
- using Cassandra.Responses;
- using Cassandra.Tasks;
-﻿using Microsoft.IO;
+using System.Threading;
+using System.Threading.Tasks;
+using Cassandra.Metrics;
+using Cassandra.Metrics.StubImpl;
+using Cassandra.Requests;
+using Cassandra.Responses;
+using Cassandra.Tasks;
 
 namespace Cassandra
 {
@@ -42,6 +40,7 @@ namespace Cassandra
         private volatile bool _timeoutCallbackSet;
         private int _state = StateInit;
         private volatile HashedWheelTimer.ITimeout _timeout;
+        private readonly IDriverTimer _operationLatency;
 
         /// <summary>
         /// 8 byte header of the frame
@@ -58,9 +57,13 @@ namespace Cassandra
         /// <summary>
         /// Creates a new operation state with the provided callback
         /// </summary>
-        public OperationState(Action<Exception, Response> callback)
+        public OperationState(Action<Exception, Response> callback, IRequest request, int timeoutMillis, IDriverTimer operationLatency)
         {
             Volatile.Write(ref _callback, callback);
+            Request = request;
+            TimeoutMillis = timeoutMillis;
+            _operationLatency = request is ICqlRequest ? operationLatency : EmptyDriverTimer.Instance;
+            _operationLatency.StartRecording();
         }
 
         /// <summary>
@@ -83,6 +86,9 @@ namespace Cassandra
             {
                 return Noop;
             }
+
+            // todo(sivukhin, 14.04.2019): Should we separate completed operations by different reasons (timeout, success, error, etc)?
+            _operationLatency.EndRecording();
             Action<Exception, Response> callback;
             if (previousState == StateInit)
             {
@@ -93,8 +99,10 @@ namespace Cassandra
                     //Cancel it if it hasn't expired
                     timeout.Cancel();
                 }
+
                 return callback;
             }
+
             //Operation has timed out
             var spin = new SpinWait();
             while (!_timeoutCallbackSet)
@@ -102,6 +110,7 @@ namespace Cassandra
                 //Wait for the timeout callback to be set
                 spin.SpinOnce();
             }
+
             callback = Interlocked.Exchange(ref _callback, Noop);
             return callback;
         }
@@ -117,6 +126,7 @@ namespace Cassandra
             {
                 return;
             }
+
             //Invoke the callback in a new thread in the thread pool
             //This way we don't let the user block on a thread used by the Connection
             Task.Factory.StartNew(() => callback(ex, null), CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
@@ -133,6 +143,7 @@ namespace Cassandra
             {
                 return false;
             }
+
             //When the data is received, invoke on receive callback
             var callback = Interlocked.Exchange(ref _callback, (_, __) => onReceive());
 #if !NETCORE
@@ -154,6 +165,7 @@ namespace Cassandra
             {
                 return;
             }
+
             //Remove the closure
             Volatile.Write(ref _callback, Noop);
             var timeout = _timeout;
