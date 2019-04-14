@@ -5,14 +5,6 @@ namespace Cassandra.Metrics
         public IDriverGauge OpenConnections { get; }
         public IDriverGauge AvailableStreams { get; }
         public IDriverGauge InFlight { get; }
-        public IDriverCounter BytesSent { get; }
-        public IDriverCounter BytesReceived { get; }
-        public IDriverCounter CqlMessages { get; }
-        public IDriverCounter UnsentRequests { get; }
-        public IDriverCounter AbortedRequests { get; }
-        public IDriverCounter WriteTimeouts { get; }
-        public IDriverCounter ReadTimeouts { get; }
-        public IDriverCounter Unavailables { get; }
         public IDriverCounter OtherErrors { get; }
         public IDriverCounter Retries { get; }
         public IDriverCounter RetriesOnAborted { get; }
@@ -30,24 +22,20 @@ namespace Cassandra.Metrics
         public IDriverCounter ConnectionInitErrors { get; }
         public IDriverCounter AuthenticationErrors { get; }
 
+        public IConnectionLevelMetricsRegistry ConnectionLevelMetricsRegistry { get; }
+
         public HostLevelMetricsRegistry(IDriverMetricsProvider driverMetricsProvider, Host host, IHostConnectionPool hostConnectionPool)
         {
             var metricsProviderWithContext = driverMetricsProvider
                                              .WithContext("nodes")
                                              .WithContext(BuildHostMetricPath(host));
+            // todo(sivukhin, 14.04.2019): Possible memory leak, because gauges will live until application termination 
             OpenConnections = metricsProviderWithContext.Gauge("pool.open-connections", () => hostConnectionPool.OpenConnections);
             AvailableStreams = metricsProviderWithContext.Gauge("pool.available-streams", () => hostConnectionPool.AvailableStreams);
             InFlight = metricsProviderWithContext.Gauge("pool.in-flight", () => hostConnectionPool.InFlight);
-            
-            BytesSent = metricsProviderWithContext.Counter("bytes-sent");
-            BytesReceived = metricsProviderWithContext.Counter("bytes-received");
-            CqlMessages = metricsProviderWithContext.Counter("cql-messages");
 
-            UnsentRequests = metricsProviderWithContext.Counter("errors.request.unsent");
-            AbortedRequests = metricsProviderWithContext.Counter("errors.request.aborted");
-            WriteTimeouts = metricsProviderWithContext.Counter("errors.request.write-timeouts");
-            ReadTimeouts = metricsProviderWithContext.Counter("errors.request.read-timeouts");
-            Unavailables = metricsProviderWithContext.Counter("errors.request.unavailables");
+            ConnectionLevelMetricsRegistry = new ConnectionLevelMetricsRegistry(metricsProviderWithContext);
+
             OtherErrors = metricsProviderWithContext.Counter("errors.request.others");
 
             Retries = metricsProviderWithContext.Counter("retries.total");
