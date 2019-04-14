@@ -1,4 +1,6 @@
-namespace Cassandra.Metrics
+using Cassandra.Metrics.DriverAbstractions;
+
+namespace Cassandra.Metrics.Registries
 {
     internal class MetricsRegistry : IMetricsRegistry
     {

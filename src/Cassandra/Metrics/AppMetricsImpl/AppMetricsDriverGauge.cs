@@ -1,6 +1,7 @@
 #if NETSTANDARD2_0
 
 using App.Metrics.Gauge;
+using Cassandra.Metrics.DriverAbstractions;
 
 namespace Cassandra.Metrics.AppMetricsImpl
 {

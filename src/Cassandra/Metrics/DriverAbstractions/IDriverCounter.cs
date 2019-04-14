@@ -1,4 +1,4 @@
-namespace Cassandra.Metrics
+namespace Cassandra.Metrics.DriverAbstractions
 {
     public interface IDriverCounter
     {

@@ -1,4 +1,5 @@
 using System;
+using Cassandra.Metrics.DriverAbstractions;
 
 namespace Cassandra.Metrics
 {

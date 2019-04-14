@@ -1,3 +1,5 @@
+using Cassandra.Metrics.DriverAbstractions;
+
 namespace Cassandra.Metrics.StubImpl
 {
     public class EmptyDriverMeter : IDriverMeter

@@ -8,6 +8,7 @@ using App.Metrics.Gauge;
 using App.Metrics.Histogram;
 using App.Metrics.Meter;
 using App.Metrics.Timer;
+using Cassandra.Metrics.DriverAbstractions;
 
 namespace Cassandra.Metrics.AppMetricsImpl
 {
