@@ -425,7 +425,7 @@ namespace Cassandra
         {
             try
             {
-                return await DoOpen();
+                return await DoOpen().ConfigureAwait(false);
             }
             catch (AuthenticationException)
             {
