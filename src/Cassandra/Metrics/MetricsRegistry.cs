@@ -1,8 +1,6 @@
-using System.Net;
-
 namespace Cassandra.Metrics
 {
-    public class MetricsRegistry
+    internal class MetricsRegistry
     {
         private readonly IDriverMetricsProvider _driverMetricsProvider;
 
@@ -11,10 +9,9 @@ namespace Cassandra.Metrics
             _driverMetricsProvider = driverMetricsProvider;
         }
 
-        public HostLevelMetricsRegistry GetHostLevelMetrics(Host host)
+        public HostLevelMetricsRegistry GetHostLevelMetrics(Host host, IHostConnectionPool hostConnectionPool)
         {
-            var hostMetricsProvider = _driverMetricsProvider.WithContext("nodes").WithContext(BuildHostMetricPath(host));
-            return new HostLevelMetricsRegistry(hostMetricsProvider);
+            return new HostLevelMetricsRegistry(_driverMetricsProvider, host, hostConnectionPool);
         }
 
         private string BuildHostMetricPath(Host host)

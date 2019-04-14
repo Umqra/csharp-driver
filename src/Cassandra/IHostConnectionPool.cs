@@ -27,5 +27,10 @@ namespace Cassandra
         /// Gets the total of in-flight requests on all connections. 
         /// </summary>
         int InFlight { get; }
+        
+        /// <summary>
+        /// Gets the total amount of available streams across all opened connections 
+        /// </summary>
+        int AvailableStreams { get; }
     }
 }
