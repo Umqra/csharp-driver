@@ -342,11 +342,12 @@ namespace Cassandra.Requests
                 }
             }
 
-            var (reason, decision) = RequestExecution.GetRetryDecisionWithReason(
+            var reasonAndDecision = RequestExecution.GetRetryDecisionWithReason(
                 ex, _parent.RetryPolicy, _parent.Statement, _session.Cluster.Configuration, _retryCount);
             // todo(sivukhin, 14.04.2019): Are there a situations where there is no _host available at the moment?
-            _host.HostLevelMetricsRegistry.RequestLevelMetricsRegistry.RecordRequestRetry(reason, decision.DecisionType);
-            switch (decision.DecisionType)
+            _host.HostLevelMetricsRegistry.RequestLevelMetricsRegistry.RecordRequestRetry(
+                reasonAndDecision.Item1, reasonAndDecision.Item2.DecisionType);
+            switch (reasonAndDecision.Item2.DecisionType)
             {
                 case RetryDecision.RetryDecisionType.Rethrow:
                     _parent.SetCompleted(ex);
@@ -359,12 +360,12 @@ namespace Cassandra.Requests
 
                 case RetryDecision.RetryDecisionType.Retry:
                     //Retry the Request using the new consistency level
-                    Retry(decision.RetryConsistencyLevel, decision.UseCurrentHost);
+                    Retry(reasonAndDecision.Item2.RetryConsistencyLevel, reasonAndDecision.Item2.UseCurrentHost);
                     break;
             }
         }
 
-        private static (RetryDecision.RetryReasonType Reason, RetryDecision Decision) GetRetryDecisionWithReason(
+        private static Tuple<RetryDecision.RetryReasonType, RetryDecision> GetRetryDecisionWithReason(
             Exception ex, IExtendedRetryPolicy policy, IStatement statement, Configuration config, int retryCount)
         {
             if (ex is SocketException || ex is OverloadedException || ex is IsBootstrappingException || ex is TruncateException ||
@@ -379,12 +380,12 @@ namespace Cassandra.Requests
                 var decision = statement == null && ex is OperationTimedOutException
                     ? RetryDecision.Retry(null, false)
                     : policy.OnRequestError(statement, config, ex, retryCount);
-                return (RetryDecision.RetryReasonType.RequestError, decision);
+                return Tuple.Create(RetryDecision.RetryReasonType.RequestError, decision);
             }
 
             if (ex is ReadTimeoutException e)
             {
-                return (
+                return Tuple.Create(
                     RetryDecision.RetryReasonType.ReadTimeOut,
                     policy.OnReadTimeout(statement, e.ConsistencyLevel, e.RequiredAcknowledgements, e.ReceivedAcknowledgements, e.WasDataRetrieved,
                         retryCount)
@@ -393,7 +394,7 @@ namespace Cassandra.Requests
 
             if (ex is WriteTimeoutException e1)
             {
-                return (
+                return Tuple.Create(
                     RetryDecision.RetryReasonType.WriteTimeOut,
                     policy.OnWriteTimeout(statement, e1.ConsistencyLevel, e1.WriteType, e1.RequiredAcknowledgements, e1.ReceivedAcknowledgements,
                         retryCount)
@@ -402,14 +403,14 @@ namespace Cassandra.Requests
 
             if (ex is UnavailableException e2)
             {
-                return (
+                return Tuple.Create(
                     RetryDecision.RetryReasonType.Unavailable,
                     policy.OnUnavailable(statement, e2.Consistency, e2.RequiredReplicas, e2.AliveReplicas, retryCount)
                 );
             }
 
             // Any other Exception just throw it
-            return (RetryDecision.RetryReasonType.Unknown, RetryDecision.Rethrow());
+            return Tuple.Create(RetryDecision.RetryReasonType.Unknown, RetryDecision.Rethrow());
         }
 
         /// <summary>
@@ -418,7 +419,7 @@ namespace Cassandra.Requests
         internal static RetryDecision GetRetryDecision(
             Exception ex, IExtendedRetryPolicy policy, IStatement statement, Configuration config, int retryCount)
         {
-            return GetRetryDecisionWithReason(ex, policy, statement, config, retryCount).Decision;
+            return GetRetryDecisionWithReason(ex, policy, statement, config, retryCount).Item2;
         }
 
         /// <summary>
