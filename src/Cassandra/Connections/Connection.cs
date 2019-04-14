@@ -487,6 +487,8 @@ namespace Cassandra.Connections
                 //All pending operations have been canceled, there is no point in reading from the wire.
                 return;
             }
+            
+            _connectionLevelMetricsRegistry.BytesReceived.Increment(bytesReceived);
             //We are currently using an IO Thread
             //Parse the data received
             var streamIdAvailable = ReadParse(buffer, bytesReceived);
@@ -825,7 +827,9 @@ namespace Cassandra.Connections
                 }
                 //We will not use the request any more, stop reference it.
                 state.Request = null;
+                // todo(sivukhin, 14.04.2019): Refactor this part a little?
                 totalLength += frameLength;
+                _connectionLevelMetricsRegistry.BytesSent.Increment(frameLength);
             }
             if (totalLength == 0L)
             {
