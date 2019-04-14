@@ -184,6 +184,11 @@ namespace Cassandra
             this(serializer, endpoint, configuration, new StartupRequestFactory(configuration.StartupOptionsFactory), EmptyConnectionLevelMetricsRegistry.Instance)
         {
         }
+        
+        public Connection(Serializer serializer, IPEndPoint endpoint, Configuration configuration, IConnectionLevelMetricsRegistry connectionLevelMetricsRegistry) :
+            this(serializer, endpoint, configuration, new StartupRequestFactory(configuration.StartupOptionsFactory), connectionLevelMetricsRegistry)
+        {
+        }
 
         internal Connection(Serializer serializer, IPEndPoint endpoint, Configuration configuration, IStartupRequestFactory startupRequestFactory, IConnectionLevelMetricsRegistry connectionLevelMetricsRegistry)
         {

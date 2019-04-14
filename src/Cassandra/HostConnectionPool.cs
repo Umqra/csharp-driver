@@ -126,7 +126,8 @@ namespace Cassandra
             _timer = config.Timer;
             _reconnectionSchedule = config.Policies.ReconnectionPolicy.NewSchedule();
             _expectedConnectionLength = 1;
-            _hostLevelMetricsRegistry = config.MetricsRegistry.GetHostLevelMetrics(host, this);
+            _hostLevelMetricsRegistry = config.MetricsRegistry.GetHostLevelMetrics(host);
+            _hostLevelMetricsRegistry.InitializeHostConnectionPoolMetrics(this);
         }
 
         /// <summary>
@@ -263,7 +264,7 @@ namespace Cassandra
 
         public virtual async Task<IConnection> DoCreateAndOpen()
         {
-            var c = new Connection(_serializer, _host.Address, _config, _hostLevelMetricsRegistry);
+            var c = new Connection(_serializer, _host.Address, _config, _hostLevelMetricsRegistry.ConnectionLevelMetricsRegistry);
             try
             {
                 await c.Open().ConfigureAwait(false);

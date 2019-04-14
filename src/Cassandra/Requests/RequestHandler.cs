@@ -420,7 +420,7 @@ namespace Cassandra.Requests
 
         protected virtual IRequestExecution NewExecution(IInternalSession session, IRequest request)
         {
-            return new RequestExecution(this, _session, _request);
+            return new RequestExecution(this, _session, _request, _session.Configuration.MetricsRegistry.GetRequestLevelMetrics());
         }
 
         /// <summary>
