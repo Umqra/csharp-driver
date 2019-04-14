@@ -681,10 +681,10 @@ namespace Cassandra
 
         // todo (sivukhin, 12.04.2019): Unify client API for all target frameworks 
 #if NETSTANDARD2_0
-        public Builder WithAppMetrics(App.Metrics.IMetricsRoot metricsRoot, string globalPrefix = null)
+        public Builder WithAppMetrics(App.Metrics.IMetricsRoot metricsRoot)
         {
             _driverMetricsProvider =
-                new Metrics.AppMetricsImpl.AppMetricsDriverMetricsProvider(metricsRoot, globalPrefix == null ? null : new[] {globalPrefix});
+                new Metrics.AppMetricsImpl.AppMetricsDriverMetricsProvider(metricsRoot);
             return this;
         }
 #endif
