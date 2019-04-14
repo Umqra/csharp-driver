@@ -34,7 +34,7 @@ namespace Cassandra.Tests
             var responses = new ConcurrentBag<Response>();
             connectionMock.Setup(c => c.RemoveFromPending(It.IsAny<short>()))
                 .Callback<short>(id => streamIds.Add(id))
-                .Returns(() => new OperationState((ex, r) => responses.Add(r)));
+                .Returns(() => OperationStateExtensions.CreateMock((ex, r) => responses.Add(r)));
             var connection = connectionMock.Object;
             var buffer = GetResultBuffer(127);
             connection.ReadParse(buffer, buffer.Length);
@@ -58,7 +58,7 @@ namespace Cassandra.Tests
             var responses = new ConcurrentBag<Response>();
             connectionMock.Setup(c => c.RemoveFromPending(It.IsAny<short>()))
                 .Callback<short>(id => streamIds.Add(id))
-                .Returns(() => new OperationState((ex, r) => responses.Add(r)));
+                .Returns(() => OperationStateExtensions.CreateMock((ex, r) => responses.Add(r)));
             var connection = connectionMock.Object;
             var buffer = GetResultBuffer(127).Concat(GetResultBuffer(126)).ToArray();
             connection.ReadParse(buffer, buffer.Length);
@@ -75,7 +75,7 @@ namespace Cassandra.Tests
             var responses = new ConcurrentBag<Response>();
             connectionMock.Setup(c => c.RemoveFromPending(It.IsAny<short>()))
                 .Callback<short>(id => streamIds.Add(id))
-                .Returns(() => new OperationState((ex, r) => responses.Add(r)));
+                .Returns(() => OperationStateExtensions.CreateMock((ex, r) => responses.Add(r)));
             var connection = connectionMock.Object;
             var buffer = GetResultBuffer(127).Concat(GetResultBuffer(126)).Concat(GetResultBuffer(100)).ToArray();
             //first 2 messages and 2 bytes of the third message
@@ -100,7 +100,7 @@ namespace Cassandra.Tests
             var responses = new ConcurrentBag<Response>();
             connectionMock.Setup(c => c.RemoveFromPending(It.IsAny<short>()))
                 .Callback<short>(id => streamIds.Add(id))
-                .Returns(() => new OperationState((ex, r) => responses.Add(r)));
+                .Returns(() => OperationStateExtensions.CreateMock((ex, r) => responses.Add(r)));
             var connection = connectionMock.Object;
             var buffer = GetResultBuffer(127).Concat(GetResultBuffer(126)).Concat(GetResultBuffer(100)).ToArray();
             //first 2 messages and 2 bytes of the third message
@@ -133,7 +133,7 @@ namespace Cassandra.Tests
             var exceptions = new ConcurrentBag<Exception>();
             connectionMock.Setup(c => c.RemoveFromPending(It.IsAny<short>()))
                 .Callback<short>(id => streamIds.Add(id))
-                .Returns(() => new OperationState((ex, r) =>
+                .Returns(() => OperationStateExtensions.CreateMock((ex, r) =>
                 {
                     if (ex != null)
                     {
@@ -167,7 +167,7 @@ namespace Cassandra.Tests
             var responses = new ConcurrentBag<Response>();
             connectionMock.Setup(c => c.RemoveFromPending(It.IsAny<short>()))
                 .Callback<short>(id => streamIds.Add(id))
-                .Returns(() => new OperationState((ex, r) => responses.Add(r)));
+                .Returns(() => OperationStateExtensions.CreateMock((ex, r) => responses.Add(r)));
             var connection = connectionMock.Object;
             var originalBuffer = GetResultBuffer(127).Concat(GetResultBuffer(126)).Concat(GetResultBuffer(100)).ToArray();
             //almost 3 responses, 3 byte of the body left
@@ -197,7 +197,7 @@ namespace Cassandra.Tests
             var responses = new ConcurrentBag<Response>();
             connectionMock.Setup(c => c.RemoveFromPending(It.IsAny<short>()))
                 .Callback<short>(id => streamIds.Add(id))
-                .Returns(() => new OperationState((ex, r) => responses.Add(r)));
+                .Returns(() => OperationStateExtensions.CreateMock((ex, r) => responses.Add(r)));
             var connection = connectionMock.Object;
             var buffer = GetResultBuffer(127)
                 .Concat(GetResultBuffer(126))
@@ -237,7 +237,7 @@ namespace Cassandra.Tests
             var responses = new ConcurrentBag<Response>();
             connectionMock.Setup(c => c.RemoveFromPending(It.IsAny<short>()))
                 .Callback<short>(id => streamIds.Add(id))
-                .Returns(() => new OperationState((ex, r) => responses.Add(r)));
+                .Returns(() => OperationStateExtensions.CreateMock((ex, r) => responses.Add(r)));
             var connection = connectionMock.Object;
             var buffer = GetResultBuffer(127).Concat(GetResultBuffer(126)).Concat(GetResultBuffer(100)).ToArray();
             //almost 3 responses, just 1 byte of the body left
@@ -260,7 +260,7 @@ namespace Cassandra.Tests
             var connectionMock = GetConnectionMock();
             var responses = new ConcurrentBag<object>();
             connectionMock.Setup(c => c.RemoveFromPending(It.IsAny<short>()))
-                          .Returns(() => new OperationState((ex, r) => responses.Add((object) ex ?? r)));
+                          .Returns(() => OperationStateExtensions.CreateMock((ex, r) => responses.Add((object) ex ?? r)));
             var connection = connectionMock.Object;
             var bufferBuilder = Enumerable.Empty<byte>();
             const int totalFrames = 63;
