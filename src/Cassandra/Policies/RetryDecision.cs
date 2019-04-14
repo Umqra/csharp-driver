@@ -44,7 +44,16 @@ namespace Cassandra
             /// no retry should be attempted and the exception should be ignored. In that case, the operation that triggered the Cassandra exception will return an empty result set.
             /// </summary>
             Ignore
-        };
+        }
+
+        public enum RetryReasonType
+        {
+            ReadTimeOut,
+            WriteTimeOut,
+            Unavailable,
+            RequestError,
+            Unknown,
+        }
 
         /// <summary>
         ///  Gets the type of this retry decision.
