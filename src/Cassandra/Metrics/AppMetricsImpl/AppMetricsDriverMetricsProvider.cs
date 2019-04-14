@@ -64,7 +64,11 @@ namespace Cassandra.Metrics.AppMetricsImpl
         public IDriverGauge Gauge(string metricName, Func<double> instantValue)
         {
             var gauge = _metricsRoot.Build.Gauge.Build(instantValue);
-            return new AppMetricsDriverGauge(_metricsRoot.Provider.Gauge.Instance(new GaugeOptions(), () => gauge));
+            return new AppMetricsDriverGauge(_metricsRoot.Provider.Gauge.Instance(new GaugeOptions
+            {
+                Context = CurrentContext,
+                Name = metricName,
+            }, () => gauge));
         }
 
         public IDriverMetricsProvider WithContext(string context)
