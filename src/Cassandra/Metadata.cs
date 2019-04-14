@@ -112,7 +112,7 @@ namespace Cassandra
 
         internal Host AddHost(IPEndPoint address)
         {
-            return Hosts.Add(address);
+            return Hosts.Add(address, Configuration.MetricsRegistry);
         }
 
         internal void RemoveHost(IPEndPoint address)

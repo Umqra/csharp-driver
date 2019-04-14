@@ -83,7 +83,6 @@ namespace Cassandra.Connections
         private HashedWheelTimer.ITimeout _newConnectionTimeout;
         private TaskCompletionSource<IConnection> _connectionOpenTcs;
         private int _connectionIndex;
-        private HostLevelMetricsRegistry _hostLevelMetricsRegistry;
         private readonly int _maxRequestsPerConnection;
 
         public event Action<Host, HostConnectionPool> AllConnectionClosed;
@@ -122,8 +121,7 @@ namespace Cassandra.Connections
             _timer = config.Timer;
             _reconnectionSchedule = config.Policies.ReconnectionPolicy.NewSchedule();
             _expectedConnectionLength = 1;
-            _hostLevelMetricsRegistry = config.MetricsRegistry.GetHostLevelMetrics(host);
-            _hostLevelMetricsRegistry.InitializeHostConnectionPoolMetrics(this);
+            host.HostLevelMetricsRegistry.InitializeHostConnectionPoolGauges(this);
         }
 
         /// <inheritdoc />
@@ -250,7 +248,7 @@ namespace Cassandra.Connections
 
         public virtual async Task<IConnection> DoCreateAndOpen()
         {
-            var c = _config.ConnectionFactory.Create(_serializer, _host.Address, _config, _hostLevelMetricsRegistry.ConnectionLevelMetricsRegistry);
+            var c = _config.ConnectionFactory.Create(_serializer, _host.Address, _config, _host.HostLevelMetricsRegistry.ConnectionLevelMetricsRegistry);
             try
             {
                 await c.Open().ConfigureAwait(false);
