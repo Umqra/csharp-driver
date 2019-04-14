@@ -8,7 +8,7 @@ namespace Cassandra.Metrics
         IDriverHistogram Histogram(string metricName);
         IDriverMeter Meter(string metricName);
         IDriverCounter Counter(string metricName);
-        void Gauge(string metricName, Func<double> instantValue);
+        IDriverGauge Gauge(string metricName, Func<double> instantValue);
         IDriverMetricsProvider WithContext(string context);
     }
 }

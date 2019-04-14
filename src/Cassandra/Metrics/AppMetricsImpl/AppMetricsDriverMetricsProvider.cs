@@ -60,13 +60,10 @@ namespace Cassandra.Metrics.AppMetricsImpl
             }));
         }
 
-        public void Gauge(string metricName, Func<double> instantValue)
+        public IDriverGauge Gauge(string metricName, Func<double> instantValue)
         {
-            _metricsRoot.Measure.Gauge.SetValue(new GaugeOptions
-            {
-                Name = metricName,
-                Context = $"{string.Join(".", _contextComponents)}"
-            }, instantValue);
+            var gauge = _metricsRoot.Build.Gauge.Build(instantValue);
+            return new AppMetricsDriverGauge(_metricsRoot.Provider.Gauge.Instance(new GaugeOptions(), () => gauge));
         }
 
         public IDriverMetricsProvider WithContext(string context)
