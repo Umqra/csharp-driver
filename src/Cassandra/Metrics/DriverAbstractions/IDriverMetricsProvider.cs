@@ -4,11 +4,11 @@ namespace Cassandra.Metrics.DriverAbstractions
 {
     public interface IDriverMetricsProvider
     {
-        IDriverTimer Timer(string metricName);
-        IDriverHistogram Histogram(string metricName);
-        IDriverMeter Meter(string metricName);
-        IDriverCounter Counter(string metricName);
-        IDriverGauge Gauge(string metricName, Func<double> instantValue);
+        IDriverTimer Timer(string metricName, DriverMeasurementUnit measurementUnit);
+        IDriverHistogram Histogram(string metricName, DriverMeasurementUnit measurementUnit);
+        IDriverMeter Meter(string metricName, DriverMeasurementUnit measurementUnit);
+        IDriverCounter Counter(string metricName, DriverMeasurementUnit measurementUnit);
+        IDriverGauge Gauge(string metricName, Func<double> instantValue, DriverMeasurementUnit measurementUnit);
         IDriverMetricsProvider WithContext(string context);
     }
 }

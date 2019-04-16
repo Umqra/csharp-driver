@@ -6,15 +6,19 @@ namespace Cassandra.Metrics.Registries
     {
         public ConnectionLevelMetricsRegistry(IDriverMetricsProvider driverMetricsProvider)
         {
-            BytesSent = driverMetricsProvider.Counter("bytes-sent");
-            BytesReceived = driverMetricsProvider.Counter("bytes-received");
+            BytesSent = driverMetricsProvider.Counter("bytes-sent", DriverMeasurementUnit.Bytes);
+            BytesReceived = driverMetricsProvider.Counter("bytes-received", DriverMeasurementUnit.Bytes);
 
-            ConnectionInitErrors = driverMetricsProvider.WithContext("errors").WithContext("connection").Counter("init");
-            AuthenticationErrors = driverMetricsProvider.WithContext("errors").WithContext("connection").Counter("auth");
+            ConnectionInitErrors = driverMetricsProvider.WithContext("errors")
+                                                        .WithContext("connection")
+                                                        .Counter("init", DriverMeasurementUnit.Errors);
+            AuthenticationErrors = driverMetricsProvider.WithContext("errors")
+                                                        .WithContext("connection")
+                                                        .Counter("auth", DriverMeasurementUnit.Errors);
 
             // todo(sivukhin, 14.04.2019): Add information about keyspace/table name
             // todo(sivukhin, 14.04.2019): Move to request-level metrics registry?
-            CqlMessages = driverMetricsProvider.Timer("cql-messages");
+            CqlMessages = driverMetricsProvider.Timer("cql-messages", DriverMeasurementUnit.Requests);
         }
 
         public IDriverCounter BytesSent { get; }

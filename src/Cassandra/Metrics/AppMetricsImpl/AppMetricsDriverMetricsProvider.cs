@@ -25,49 +25,55 @@ namespace Cassandra.Metrics.AppMetricsImpl
             _contextComponents = contextComponents ?? new string[0];
         }
 
-        public IDriverTimer Timer(string metricName)
+        public IDriverTimer Timer(string metricName, DriverMeasurementUnit measurementUnit)
         {
             return new AppMetricsDriverTimer(_metricsRoot.Provider.Timer.Instance(new TimerOptions
             {
                 Name = metricName,
                 Context = CurrentContext,
+                MeasurementUnit = measurementUnit.ToAppMetricsUnit(),
+                DurationUnit = TimeUnit.Milliseconds
             }));
         }
 
-        public IDriverHistogram Histogram(string metricName)
+        public IDriverHistogram Histogram(string metricName, DriverMeasurementUnit measurementUnit)
         {
             return new AppMetricsDriverHistogram(_metricsRoot.Provider.Histogram.Instance(new HistogramOptions
             {
                 Name = metricName,
                 Context = CurrentContext,
+                MeasurementUnit = measurementUnit.ToAppMetricsUnit(),
             }));
         }
 
-        public IDriverMeter Meter(string metricName)
+        public IDriverMeter Meter(string metricName, DriverMeasurementUnit measurementUnit)
         {
             return new AppMetricsDriverMeter(_metricsRoot.Provider.Meter.Instance(new MeterOptions
             {
                 Name = metricName,
                 Context = CurrentContext,
+                MeasurementUnit = measurementUnit.ToAppMetricsUnit(),
             }));
         }
 
-        public IDriverCounter Counter(string metricName)
+        public IDriverCounter Counter(string metricName, DriverMeasurementUnit measurementUnit)
         {
             return new AppMetricsDriverCounter(_metricsRoot.Provider.Counter.Instance(new CounterOptions
             {
                 Name = metricName,
-                Context = CurrentContext
+                Context = CurrentContext,
+                MeasurementUnit = measurementUnit.ToAppMetricsUnit(),
             }));
         }
 
-        public IDriverGauge Gauge(string metricName, Func<double> instantValue)
+        public IDriverGauge Gauge(string metricName, Func<double> instantValue, DriverMeasurementUnit measurementUnit)
         {
             var gauge = _metricsRoot.Build.Gauge.Build(instantValue);
             return new AppMetricsDriverGauge(_metricsRoot.Provider.Gauge.Instance(new GaugeOptions
             {
                 Context = CurrentContext,
                 Name = metricName,
+                MeasurementUnit = measurementUnit.ToAppMetricsUnit(),
             }, () => gauge));
         }
 
