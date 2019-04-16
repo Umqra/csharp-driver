@@ -41,7 +41,7 @@ namespace Cassandra
         private volatile bool _timeoutCallbackSet;
         private int _state = StateInit;
         private volatile HashedWheelTimer.ITimeout _timeout;
-        private readonly IDriverTimer _operationLatency;
+        private readonly IDriverTimeHandler _operationLatency;
 
         /// <summary>
         /// 8 byte header of the frame
@@ -63,8 +63,7 @@ namespace Cassandra
             Volatile.Write(ref _callback, callback);
             Request = request;
             TimeoutMillis = timeoutMillis;
-            _operationLatency = request is ICqlRequest ? operationLatency : EmptyDriverTimer.Instance;
-            _operationLatency.StartRecording();
+            _operationLatency = (request is ICqlRequest ? operationLatency : EmptyDriverTimer.Instance).StartRecording();
         }
 
         /// <summary>
