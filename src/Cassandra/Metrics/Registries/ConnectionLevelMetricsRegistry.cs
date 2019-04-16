@@ -9,8 +9,8 @@ namespace Cassandra.Metrics.Registries
             BytesSent = driverMetricsProvider.Counter("bytes-sent");
             BytesReceived = driverMetricsProvider.Counter("bytes-received");
 
-            ConnectionInitErrors = driverMetricsProvider.Counter("errors.connection.init");
-            AuthenticationErrors = driverMetricsProvider.Counter("errors.connection.auth");
+            ConnectionInitErrors = driverMetricsProvider.WithContext("errors").WithContext("connection").Counter("init");
+            AuthenticationErrors = driverMetricsProvider.WithContext("errors").WithContext("connection").Counter("auth");
 
             // todo(sivukhin, 14.04.2019): Add information about keyspace/table name
             // todo(sivukhin, 14.04.2019): Move to request-level metrics registry?
