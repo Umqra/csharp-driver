@@ -32,8 +32,7 @@ namespace Cassandra.Metrics.AppMetricsImpl
             var utcTimestamp = point.UtcTimestamp ?? DateTime.UtcNow;
             foreach (var f in point.Fields)
             {
-                textWriter.Write(prefix);
-                textWriter.Write(GraphiteSyntax.EscapeName(f.Key));
+                textWriter.Write($"{prefix}.{GraphiteSyntax.EscapeName(f.Key)}");
 
                 textWriter.Write(' ');
                 textWriter.Write(GraphiteSyntax.FormatValue(f.Value));
