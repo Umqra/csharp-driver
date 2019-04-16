@@ -20,15 +20,21 @@ namespace Cassandra.Metrics.Registries
             ConnectionLevelMetricsRegistry = new ConnectionLevelMetricsRegistry(_driverMetricsProvider);
             RequestLevelMetricsRegistry = new RequestHostLevelMetricsRegistry(_driverMetricsProvider);
 
-            SpeculativeExecutions = _driverMetricsProvider.Counter("speculative-executions");
+            SpeculativeExecutions = _driverMetricsProvider.Counter("speculative-executions", DriverMeasurementUnit.Requests);
         }
 
         public void InitializeHostConnectionPoolGauges(IHostConnectionPool hostConnectionPool)
         {
             // todo(sivukhin, 14.04.2019): Possible <<memory leak>>, because gauges will live until application termination
-            OpenConnections = _driverMetricsProvider.WithContext("pool").Gauge("open-connections", () => hostConnectionPool.OpenConnections);
-            AvailableStreams = _driverMetricsProvider.WithContext("pool").Gauge("available-streams", () => hostConnectionPool.AvailableStreams);
-            InFlight = _driverMetricsProvider.WithContext("pool").Gauge("in-flight", () => hostConnectionPool.InFlight);
+            OpenConnections = _driverMetricsProvider
+                              .WithContext("pool")
+                              .Gauge("open-connections", () => hostConnectionPool.OpenConnections, DriverMeasurementUnit.None);
+            AvailableStreams = _driverMetricsProvider
+                               .WithContext("pool")
+                               .Gauge("available-streams", () => hostConnectionPool.AvailableStreams, DriverMeasurementUnit.None);
+            InFlight = _driverMetricsProvider
+                       .WithContext("pool")
+                       .Gauge("in-flight", () => hostConnectionPool.InFlight, DriverMeasurementUnit.None);
         }
     }
 }

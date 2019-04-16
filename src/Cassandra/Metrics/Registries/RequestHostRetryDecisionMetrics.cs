@@ -12,11 +12,11 @@ namespace Cassandra.Metrics.Registries
 
         public RequestHostRetryDecisionMetrics(IDriverMetricsProvider driverMetricsProvider)
         {
-            Total = driverMetricsProvider.Counter("total");
-            OnReadTimeout = driverMetricsProvider.Counter("read-timeout");
-            OnWriteTimeout = driverMetricsProvider.Counter("write-timeout");
-            OnUnavailable = driverMetricsProvider.Counter("unavailable");
-            OnOtherError = driverMetricsProvider.Counter("other");
+            Total = driverMetricsProvider.Counter("total", DriverMeasurementUnit.None);
+            OnReadTimeout = driverMetricsProvider.Counter("read-timeout", DriverMeasurementUnit.None);
+            OnWriteTimeout = driverMetricsProvider.Counter("write-timeout", DriverMeasurementUnit.None);
+            OnUnavailable = driverMetricsProvider.Counter("unavailable", DriverMeasurementUnit.None);
+            OnOtherError = driverMetricsProvider.Counter("other", DriverMeasurementUnit.None);
         }
 
         public void RecordRequestRetry(RetryDecision.RetryReasonType reason)

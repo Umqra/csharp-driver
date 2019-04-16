@@ -7,27 +7,27 @@ namespace Cassandra.Metrics.StubImpl
     {
         public static readonly IDriverMetricsProvider Instance = new EmptyDriverMetricsProvider();
 
-        public IDriverTimer Timer(string metricName)
+        public IDriverTimer Timer(string metricName, DriverMeasurementUnit measurementUnit)
         {
             return EmptyDriverTimer.Instance;
         }
 
-        public IDriverHistogram Histogram(string metricName)
+        public IDriverHistogram Histogram(string metricName, DriverMeasurementUnit measurementUnit)
         {
             return EmptyDriverHistogram.Instance;
         }
 
-        public IDriverMeter Meter(string metricName)
+        public IDriverMeter Meter(string metricName, DriverMeasurementUnit measurementUnit)
         {
             return EmptyDriverMeter.Instance;
         }
 
-        public IDriverCounter Counter(string metricName)
+        public IDriverCounter Counter(string metricName, DriverMeasurementUnit measurementUnit)
         {
             return EmptyDriverCounter.Instance;
         }
 
-        public IDriverGauge Gauge(string metricName, Func<double> instantValue)
+        public IDriverGauge Gauge(string metricName, Func<double> instantValue, DriverMeasurementUnit measurementUnit)
         {
             return EmptyDriverGauge.Instance;
         }
