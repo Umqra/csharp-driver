@@ -26,9 +26,9 @@ namespace Cassandra.Metrics.Registries
         public void InitializeHostConnectionPoolGauges(IHostConnectionPool hostConnectionPool)
         {
             // todo(sivukhin, 14.04.2019): Possible <<memory leak>>, because gauges will live until application termination
-            OpenConnections = _driverMetricsProvider.Gauge("pool.open-connections", () => hostConnectionPool.OpenConnections);
-            AvailableStreams = _driverMetricsProvider.Gauge("pool.available-streams", () => hostConnectionPool.AvailableStreams);
-            InFlight = _driverMetricsProvider.Gauge("pool.in-flight", () => hostConnectionPool.InFlight);
+            OpenConnections = _driverMetricsProvider.WithContext("pool").Gauge("open-connections", () => hostConnectionPool.OpenConnections);
+            AvailableStreams = _driverMetricsProvider.WithContext("pool").Gauge("available-streams", () => hostConnectionPool.AvailableStreams);
+            InFlight = _driverMetricsProvider.WithContext("pool").Gauge("in-flight", () => hostConnectionPool.InFlight);
         }
     }
 }
