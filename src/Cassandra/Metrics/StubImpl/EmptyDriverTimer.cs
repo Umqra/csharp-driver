@@ -6,16 +6,9 @@ namespace Cassandra.Metrics.StubImpl
     {
         public static EmptyDriverTimer Instance = new EmptyDriverTimer();
 
-        public void StartRecording()
+        public IDriverTimeHandler StartRecording()
         {
-        }
-
-        public void EndRecording()
-        {
-        }
-
-        public void EndRecordingWithTimeout()
-        {
+            return EmptyDriverTimeHandler.Instance;
         }
     }
 }
