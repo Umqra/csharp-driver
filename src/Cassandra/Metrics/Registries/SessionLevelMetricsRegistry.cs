@@ -1,22 +1,29 @@
+using System.Xml.Linq;
 using Cassandra.Metrics.DriverAbstractions;
+using Cassandra.SessionManagement;
 
 namespace Cassandra.Metrics.Registries
 {
-    public class SessionLevelMetricsRegistry : ISessionLevelMetricsRegistry
+    internal class SessionLevelMetricsRegistry : ISessionLevelMetricsRegistry
     {
+        private readonly IDriverMetricsProvider _driverMetricsProvider;
         public IDriverCounter BytesSent { get; }
         public IDriverCounter BytesReceived { get; }
-        public IDriverCounter ConnectedNodes { get; }
-        public IDriverMeter CqlRequests { get; }
-        public IDriverMeter CqlClientTimeouts { get; }
+        public IRequestLevelMetricsRegistry RequestLevelMetricsRegistry { get; }
+        public IDriverGauge ConnectedNodes { get; private set; }
+
 
         public SessionLevelMetricsRegistry(IDriverMetricsProvider driverMetricsProvider)
         {
+            _driverMetricsProvider = driverMetricsProvider;
             BytesSent = driverMetricsProvider.Counter("bytes-sent", DriverMeasurementUnit.Bytes);
             BytesReceived = driverMetricsProvider.Counter("bytes-received", DriverMeasurementUnit.Bytes);
-            ConnectedNodes = driverMetricsProvider.Counter("connected-nodes", DriverMeasurementUnit.None);
-            CqlRequests = driverMetricsProvider.Meter("cql-requests", DriverMeasurementUnit.Requests);
-            CqlClientTimeouts = driverMetricsProvider.Meter("cql-client-timeouts", DriverMeasurementUnit.None);
+            RequestLevelMetricsRegistry = new RequestHostLevelMetricsRegistry(driverMetricsProvider);
+        }
+
+        public void InitializeSessionGauges(IInternalSession session)
+        {
+            ConnectedNodes = _driverMetricsProvider.Gauge("connected-nodes", () => session.GetAllConnections().Count, DriverMeasurementUnit.None);
         }
     }
 }

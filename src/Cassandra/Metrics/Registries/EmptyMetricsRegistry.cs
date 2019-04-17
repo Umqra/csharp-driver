@@ -8,5 +8,10 @@ namespace Cassandra.Metrics.Registries
         {
             return EmptyHostLevelMetricsRegistry.Instance;
         }
+
+        public ISessionLevelMetricsRegistry GetSessionLevelMetrics(string keyspace)
+        {
+            return EmptySessionLevelMetrics.Instance;
+        }
     }
 }

@@ -13,7 +13,16 @@ namespace Cassandra.Metrics.Registries
 
         public IHostLevelMetricsRegistry GetHostLevelMetrics(Host host)
         {
-            return new HostLevelMetricsRegistry(_driverMetricsProvider, host);
+            return new HostLevelMetricsRegistry(
+                _driverMetricsProvider
+                    .WithContext("nodes")
+                    .WithContext(MetricPathFormatExtensions.BuildHostMetricPath(host))
+            );
+        }
+
+        public ISessionLevelMetricsRegistry GetSessionLevelMetrics(string keyspace)
+        {
+            return new SessionLevelMetricsRegistry(_driverMetricsProvider.WithContext(keyspace));
         }
     }
 }
