@@ -21,6 +21,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Collections;
 using Cassandra.Metrics;
+using Cassandra.Metrics.Registries;
 using Cassandra.Serialization;
 using Cassandra.Tasks;
 
@@ -69,6 +70,7 @@ namespace Cassandra.Connections
         private readonly Host _host;
         private readonly Configuration _config;
         private readonly Serializer _serializer;
+        private readonly ISessionLevelMetricsRegistry _sessionLevelMetricsRegistry;
         private readonly CopyOnWriteList<IConnection> _connections = new CopyOnWriteList<IConnection>();
         private readonly HashedWheelTimer _timer;
         private readonly object _allConnectionClosedEventLock = new object();
@@ -107,7 +109,7 @@ namespace Cassandra.Connections
         /// <inheritdoc />
         public IConnection[] ConnectionsSnapshot => _connections.GetSnapshot();
 
-        public HostConnectionPool(Host host, Configuration config, Serializer serializer)
+        public HostConnectionPool(Host host, Configuration config, Serializer serializer, ISessionLevelMetricsRegistry sessionLevelMetricsRegistry)
         {
             _host = host;
             _host.Down += OnHostDown;
@@ -118,6 +120,7 @@ namespace Cassandra.Connections
             _maxRequestsPerConnection = config.GetPoolingOptions(serializer.ProtocolVersion)
                                               .GetMaxRequestsPerConnection();
             _serializer = serializer;
+            _sessionLevelMetricsRegistry = sessionLevelMetricsRegistry;
             _timer = config.Timer;
             _reconnectionSchedule = config.Policies.ReconnectionPolicy.NewSchedule();
             _expectedConnectionLength = 1;
@@ -248,7 +251,7 @@ namespace Cassandra.Connections
 
         public virtual async Task<IConnection> DoCreateAndOpen()
         {
-            var c = _config.ConnectionFactory.Create(_serializer, _host.Address, _config, _host.HostLevelMetricsRegistry.ConnectionLevelMetricsRegistry);
+            var c = _config.ConnectionFactory.Create(_serializer, _host.Address, _config, _host.HostLevelMetricsRegistry.ConnectionLevelMetricsRegistry, _sessionLevelMetricsRegistry);
             try
             {
                 await c.Open().ConfigureAwait(false);
