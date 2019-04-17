@@ -87,6 +87,7 @@ namespace Cassandra
         private int _writeState = WriteStateInit;
         private int _inFlight;
         private IConnectionLevelMetricsRegistry _connectionLevelMetricsRegistry;
+        private readonly ISessionLevelMetricsRegistry _sessionLevelMetricsRegistry;
 
         /// <summary>
         /// The event that represents a event RESPONSE from a Cassandra node
@@ -182,16 +183,16 @@ namespace Cassandra
         public Configuration Configuration { get; set; }
 
         public Connection(Serializer serializer, IPEndPoint endpoint, Configuration configuration) :
-            this(serializer, endpoint, configuration, new StartupRequestFactory(configuration.StartupOptionsFactory), EmptyConnectionLevelMetricsRegistry.Instance)
+            this(serializer, endpoint, configuration, new StartupRequestFactory(configuration.StartupOptionsFactory), EmptyConnectionLevelMetricsRegistry.Instance, EmptySessionLevelMetrics.Instance)
         {
         }
         
-        public Connection(Serializer serializer, IPEndPoint endpoint, Configuration configuration, IConnectionLevelMetricsRegistry connectionLevelMetricsRegistry) :
-            this(serializer, endpoint, configuration, new StartupRequestFactory(configuration.StartupOptionsFactory), connectionLevelMetricsRegistry)
+        public Connection(Serializer serializer, IPEndPoint endpoint, Configuration configuration, IConnectionLevelMetricsRegistry connectionLevelMetricsRegistry, ISessionLevelMetricsRegistry sessionLevelMetricsRegistry) :
+            this(serializer, endpoint, configuration, new StartupRequestFactory(configuration.StartupOptionsFactory), connectionLevelMetricsRegistry, sessionLevelMetricsRegistry)
         {
         }
 
-        internal Connection(Serializer serializer, IPEndPoint endpoint, Configuration configuration, IStartupRequestFactory startupRequestFactory, IConnectionLevelMetricsRegistry connectionLevelMetricsRegistry)
+        internal Connection(Serializer serializer, IPEndPoint endpoint, Configuration configuration, IStartupRequestFactory startupRequestFactory, IConnectionLevelMetricsRegistry connectionLevelMetricsRegistry, ISessionLevelMetricsRegistry sessionLevelMetricsRegistry)
         {
             _serializer = serializer ?? throw new ArgumentNullException(nameof(serializer));
             Configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
@@ -199,6 +200,7 @@ namespace Cassandra
             _tcpSocket = new TcpSocket(endpoint, configuration.SocketOptions, configuration.ProtocolOptions.SslOptions);
             _idleTimer = new Timer(IdleTimeoutHandler, null, Timeout.Infinite, Timeout.Infinite);
             _connectionLevelMetricsRegistry = connectionLevelMetricsRegistry;
+            _sessionLevelMetricsRegistry = sessionLevelMetricsRegistry;
         }
 
         private void IncrementInFlight()
@@ -521,6 +523,7 @@ namespace Cassandra
             }
             
             _connectionLevelMetricsRegistry.BytesReceived.Increment(bytesReceived);
+            _sessionLevelMetricsRegistry.BytesReceived.Increment(bytesReceived);
             //We are currently using an IO Thread
             //Parse the data received
             var streamIdAvailable = ReadParse(buffer, bytesReceived);
@@ -862,6 +865,7 @@ namespace Cassandra
                 // todo(sivukhin, 14.04.2019): Refactor this part a little?
                 totalLength += frameLength;
                 _connectionLevelMetricsRegistry.BytesSent.Increment(frameLength);
+                _sessionLevelMetricsRegistry.BytesSent.Increment(frameLength);
             }
             if (totalLength == 0L)
             {
