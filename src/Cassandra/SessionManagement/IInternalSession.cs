@@ -17,6 +17,7 @@
 using System.Collections.Generic;
 using System.Net;
 using System.Threading.Tasks;
+using Cassandra.Metrics.Registries;
 
 namespace Cassandra.SessionManagement
 {
@@ -52,6 +53,7 @@ namespace Cassandra.SessionManagement
 
         void CheckHealth(IConnection connection);
 
+        List<IHostConnectionPool> GetAllConnections();
         bool HasConnections(Host host);
 
         void MarkAsDownAndScheduleReconnection(Host host, HostConnectionPool pool);
@@ -66,5 +68,7 @@ namespace Cassandra.SessionManagement
         Configuration Configuration { get; }
 
         IInternalCluster InternalCluster { get; }
+        
+        ISessionLevelMetricsRegistry SessionLevelMetricsRegistry { get; }
     }
 }

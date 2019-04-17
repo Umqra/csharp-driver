@@ -22,6 +22,7 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Collections;
+using Cassandra.Metrics;
 using Cassandra.Serialization;
 using Cassandra.SessionManagement;
 using Cassandra.Tasks;
@@ -37,7 +38,7 @@ namespace Cassandra.Requests
 
         private readonly IRequest _request;
         private readonly IInternalSession _session;
-        private readonly TaskCompletionSource<RowSet> _tcs;
+        private readonly RequestResultHandlerWithMetrics _requestResultHandler;
         private long _state;
         private readonly IEnumerator<Host> _queryPlan;
         private readonly object _queryPlanLock = new object();
@@ -55,7 +56,7 @@ namespace Cassandra.Requests
         /// </summary>
         public RequestHandler(IInternalSession session, Serializer serializer, IRequest request, IStatement statement)
         {
-            _tcs = new TaskCompletionSource<RowSet>();
+            _requestResultHandler = new RequestResultHandlerWithMetrics(session.SessionLevelMetricsRegistry.RequestLevelMetricsRegistry);
             _session = session ?? throw new ArgumentNullException(nameof(session));
             _request = request;
             Serializer = serializer ?? throw new ArgumentNullException(nameof(session));
@@ -186,7 +187,7 @@ namespace Cassandra.Requests
             }
             if (ex != null)
             {
-                _tcs.TrySetException(ex);
+                _requestResultHandler.TrySetException(ex);
                 return true;
             }
             if (action != null)
@@ -197,16 +198,16 @@ namespace Cassandra.Requests
                     try
                     {
                         action();
-                        _tcs.TrySetResult(result);
+                        _requestResultHandler.TrySetResult(result);
                     }
                     catch (Exception actionEx)
                     {
-                        _tcs.TrySetException(actionEx);
+                        _requestResultHandler.TrySetException(actionEx);
                     }
                 });
                 return true;
             }
-            _tcs.TrySetResult(result);
+            _requestResultHandler.TrySetResult(result);
             return true;
         }
 
@@ -381,12 +382,12 @@ namespace Cassandra.Requests
         {
             if (_request == null)
             {
-                _tcs.TrySetException(new DriverException("request can not be null"));
-                return _tcs.Task;
+                _requestResultHandler.TrySetException(new DriverException("request can not be null"));
+                return _requestResultHandler.Task;
             }
 
             StartNewExecution();
-            return _tcs.Task;
+            return _requestResultHandler.Task;
         }
 
         /// <summary>

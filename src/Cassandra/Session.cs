@@ -21,7 +21,7 @@ using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
-
+using Cassandra.Metrics.Registries;
 using Cassandra.Requests;
 using Cassandra.Serialization;
 using Cassandra.SessionManagement;
@@ -39,6 +39,7 @@ namespace Cassandra
         private readonly IInternalCluster _cluster;
         private int _disposed;
         private volatile string _keyspace;
+        private readonly ISessionLevelMetricsRegistry _sessionLevelMetricsRegistryRegistry;
 
         internal IInternalSession InternalRef => this;
 
@@ -48,6 +49,7 @@ namespace Cassandra
         public ICluster Cluster => _cluster;
 
         IInternalCluster IInternalSession.InternalCluster => _cluster;
+        ISessionLevelMetricsRegistry IInternalSession.SessionLevelMetricsRegistry => _sessionLevelMetricsRegistryRegistry;
 
         /// <summary>
         /// Gets the cluster configuration
@@ -94,6 +96,8 @@ namespace Cassandra
             Keyspace = keyspace;
             UserDefinedTypes = new UdtMappingDefinitions(this, serializer);
             _connectionPool = new ConcurrentDictionary<IPEndPoint, HostConnectionPool>();
+            _sessionLevelMetricsRegistryRegistry = Configuration.MetricsRegistry.GetSessionLevelMetrics(keyspace);
+            _sessionLevelMetricsRegistryRegistry.InitializeSessionGauges(this);
         }
 
         /// <inheritdoc />
@@ -335,6 +339,11 @@ namespace Cassandra
                 // Only attempt reconnection with 1 connection pool
                 pool.ScheduleReconnection();
             }
+        }
+
+        List<IHostConnectionPool> IInternalSession.GetAllConnections()
+        {
+            return _connectionPool.Values.Select(x => x).OfType<IHostConnectionPool>().ToList();
         }
 
         bool IInternalSession.HasConnections(Host host)
