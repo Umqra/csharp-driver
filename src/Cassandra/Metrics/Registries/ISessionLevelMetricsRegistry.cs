@@ -1,13 +1,13 @@
 using Cassandra.Metrics.DriverAbstractions;
+using Cassandra.SessionManagement;
 
 namespace Cassandra.Metrics.Registries
 {
-    public interface ISessionLevelMetricsRegistry
+    internal interface ISessionLevelMetricsRegistry
     {
         IDriverCounter BytesSent { get; }
         IDriverCounter BytesReceived { get; }
-        IDriverCounter ConnectedNodes { get; }
-        IDriverMeter CqlRequests { get; }
-        IDriverMeter CqlClientTimeouts { get; }
+        IRequestSessionLevelMetricsRegistry RequestLevelMetricsRegistry { get; }
+        void InitializeSessionGauges(IInternalSession session);
     }
 }

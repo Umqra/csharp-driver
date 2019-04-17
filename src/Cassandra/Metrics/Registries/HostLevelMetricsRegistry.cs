@@ -12,11 +12,9 @@ namespace Cassandra.Metrics.Registries
         public IConnectionLevelMetricsRegistry ConnectionLevelMetricsRegistry { get; }
         public IRequestLevelMetricsRegistry RequestLevelMetricsRegistry { get; }
 
-        public HostLevelMetricsRegistry(IDriverMetricsProvider driverMetricsProvider, Host host)
+        public HostLevelMetricsRegistry(IDriverMetricsProvider driverMetricsProvider)
         {
-            _driverMetricsProvider = driverMetricsProvider
-                                     .WithContext("nodes")
-                                     .WithContext(MetricPathFormatExtensions.BuildHostMetricPath(host));
+            _driverMetricsProvider = driverMetricsProvider;
             ConnectionLevelMetricsRegistry = new ConnectionLevelMetricsRegistry(_driverMetricsProvider);
             RequestLevelMetricsRegistry = new RequestHostLevelMetricsRegistry(_driverMetricsProvider);
 
