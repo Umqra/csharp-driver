@@ -22,7 +22,7 @@ namespace Cassandra.Metrics.Registries
 
         public ISessionLevelMetricsRegistry GetSessionLevelMetrics(string keyspace)
         {
-            return new SessionLevelMetricsRegistry(_driverMetricsProvider.WithContext(keyspace));
+            return new SessionLevelMetricsRegistry(_driverMetricsProvider.WithContext(keyspace ?? "unknown-keyspace"));
         }
     }
 }
