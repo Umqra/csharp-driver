@@ -14,6 +14,14 @@ namespace Cassandra.Metrics.Registries
             _driverMetricsProvider = driverMetricsProvider;
         }
 
+        public IClusterLevelMetricsRegistry GetClusterLevelMetrics(Cluster cluster)
+        {
+            return new ClusterLevelMetricsRegistry(
+                _driverMetricsProvider
+                    .WithContext("clusters")
+                    .WithContext(cluster.Metadata.ClusterName ?? "unknown-cluster"));
+        }
+
         public IHostLevelMetricsRegistry GetHostLevelMetrics(Host host)
         {
             return new HostLevelMetricsRegistry(
