@@ -14,9 +14,9 @@ namespace Cassandra.Metrics.Registries
             _driverMetricsProvider = driverMetricsProvider;
         }
 
-        public IClusterLevelMetricsRegistry GetClusterLevelMetrics(Cluster cluster)
+        public IClusterLevelMetricsRegistry GetClusterLevelMetrics(Metadata clusterMetadata)
         {
-            return new ClusterLevelMetricsRegistry(BuildProviderForCluster(cluster));
+            return new ClusterLevelMetricsRegistry(BuildProviderForCluster(clusterMetadata));
         }
 
         public IHostLevelMetricsRegistry GetHostLevelMetrics(Host host)
@@ -34,11 +34,11 @@ namespace Cassandra.Metrics.Registries
             return new ConnectionLevelMetricsRegistry(BuildProviderForHost(host), BuildProviderForSession(session));
         }
 
-        private IDriverMetricsProvider BuildProviderForCluster(Cluster cluster)
+        private IDriverMetricsProvider BuildProviderForCluster(Metadata clusterMetadata)
         {
             return _driverMetricsProvider
                    .WithContext("clusters")
-                   .WithContext(cluster.Metadata.ClusterName ?? "unknown-cluster");
+                   .WithContext(clusterMetadata.ClusterName ?? "unknown-cluster");
         }
 
         private IDriverMetricsProvider BuildProviderForSession(Session session)

@@ -285,7 +285,6 @@ namespace Cassandra
                 _metadata.Hosts.Added += OnHostAdded;
                 _metadata.Hosts.Removed += OnHostRemoved;
                 _metadata.Hosts.Up += OnHostUp;
-                _metadata.Hosts.Down += OnHostDown;
             }
             finally
             {
@@ -302,7 +301,8 @@ namespace Cassandra
             await _controlConnection.Init().WaitToCompleteAsync(initialAbortTimeout).ConfigureAwait(false);
             // note (sivukhin, 23.04.2019): _controlConnection fetch information about cluster metadata (clusterName, for example),
             // note (sivukhin, 23.04.2019): so we need to wait initialization of the _controlConnection  
-            _clusterLevelMetricsRegistry = Configuration.MetricsRegistry.GetClusterLevelMetrics(this);
+            _clusterLevelMetricsRegistry = Configuration.MetricsRegistry.GetClusterLevelMetrics(_metadata);
+            _clusterLevelMetricsRegistry.InitializeClusterGauges(_metadata);
         }
 
         private static string GetAssemblyInfo()
@@ -418,7 +418,6 @@ namespace Cassandra
 
         private void OnHostRemoved(Host h)
         {
-            _clusterLevelMetricsRegistry.ConnectedHosts.Decrement(1);
             if (HostRemoved != null)
             {
                 HostRemoved(h);
@@ -427,7 +426,6 @@ namespace Cassandra
 
         private void OnHostAdded(Host h)
         {
-            _clusterLevelMetricsRegistry.ConnectedHosts.Increment(1);
             if (HostAdded != null)
             {
                 HostAdded(h);
@@ -436,18 +434,12 @@ namespace Cassandra
 
         private void OnHostUp(Host h)
         {
-            _clusterLevelMetricsRegistry.AliveHosts.Increment(1);
             if (!Configuration.QueryOptions.IsReprepareOnUp())
             {
                 return;
             }
             // We should prepare all current queries on the host
             PrepareHandler.PrepareAllQueries(h, InternalRef.PreparedQueries.Values, _connectedSessions).Forget();
-        }
-
-        private void OnHostDown(Host h)
-        {
-            _clusterLevelMetricsRegistry.AliveHosts.Decrement(1);
         }
 
         /// <summary>
