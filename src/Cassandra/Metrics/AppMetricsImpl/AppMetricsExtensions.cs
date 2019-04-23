@@ -17,6 +17,8 @@ namespace Cassandra.Metrics.AppMetricsImpl
                     return Unit.Errors;
                 case DriverMeasurementUnit.Requests:
                     return Unit.Requests;
+                case DriverMeasurementUnit.Connections:
+                    return Unit.Connections;
                 case DriverMeasurementUnit.None:
                     return Unit.None;
                 default:
