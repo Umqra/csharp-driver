@@ -101,6 +101,9 @@ namespace Cassandra.Connections
         /// <inheritdoc />
         public int InFlight => _connections.Sum(c => c.InFlight);
 
+        /// <inheritdoc />
+        public int MaxRequestsPerConnection => _maxRequestsPerConnection;
+
         /// <summary>
         /// Determines whether the pool is not on the initial state.
         /// </summary>
