@@ -1,9 +1,12 @@
 using Cassandra.Metrics.DriverAbstractions;
+using Cassandra.Metrics.StubImpl;
 
 namespace Cassandra.Metrics.Registries
 {
     internal class ConnectionLevelMetricsRegistry : IConnectionLevelMetricsRegistry
     {
+        public static IConnectionLevelMetricsRegistry EmptyInstance = new ConnectionLevelMetricsRegistry(EmptyDriverMetricsProvider.Instance);
+
         public ConnectionLevelMetricsRegistry(IDriverMetricsProvider driverMetricsProvider)
         {
             BytesSent = driverMetricsProvider.Counter("bytes-sent", DriverMeasurementUnit.Bytes);
