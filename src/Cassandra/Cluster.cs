@@ -26,6 +26,7 @@ using System.Threading.Tasks;
 using Cassandra.Collections;
 using Cassandra.Connections;
 using Cassandra.Helpers;
+using Cassandra.Metrics.Registries;
 using Cassandra.Requests;
 using Cassandra.Serialization;
 using Cassandra.SessionManagement;
@@ -51,6 +52,7 @@ namespace Cassandra
         private readonly Metadata _metadata;
         private readonly Serializer _serializer;
         private readonly ISessionFactory<IInternalSession> _sessionFactory;
+        private readonly IClusterLevelMetricsRegistry _clusterLevelMetricsRegistry;
 
         /// <inheritdoc />
         public event Action<Host> HostAdded;
@@ -158,6 +160,7 @@ namespace Cassandra
             _metadata.ControlConnection = _controlConnection;
             _serializer = _controlConnection.Serializer;
             _sessionFactory = configuration.SessionFactoryBuilder.BuildWithCluster(this);
+            _clusterLevelMetricsRegistry = configuration.MetricsRegistry.GetClusterLevelMetrics(this);
         }
 
         /// <summary>
@@ -287,6 +290,7 @@ namespace Cassandra
                 _metadata.Hosts.Added += OnHostAdded;
                 _metadata.Hosts.Removed += OnHostRemoved;
                 _metadata.Hosts.Up += OnHostUp;
+                _metadata.Hosts.Down += OnHostDown;
             }
             finally
             {
@@ -355,6 +359,7 @@ namespace Cassandra
             await session.Init().ConfigureAwait(false);
             _connectedSessions.Add(session);
             _logger.Info("Session connected ({0})", session.GetHashCode());
+            _clusterLevelMetricsRegistry.ConnectedSessions.Increment(1);
             return session;
         }
 
@@ -406,6 +411,7 @@ namespace Cassandra
 
         private void OnHostRemoved(Host h)
         {
+            _clusterLevelMetricsRegistry.ConnectedHosts.Decrement(1);
             if (HostRemoved != null)
             {
                 HostRemoved(h);
@@ -414,6 +420,7 @@ namespace Cassandra
 
         private void OnHostAdded(Host h)
         {
+            _clusterLevelMetricsRegistry.ConnectedHosts.Increment(1);
             if (HostAdded != null)
             {
                 HostAdded(h);
@@ -422,12 +429,18 @@ namespace Cassandra
 
         private void OnHostUp(Host h)
         {
+            _clusterLevelMetricsRegistry.AliveHosts.Increment(1);
             if (!Configuration.QueryOptions.IsReprepareOnUp())
             {
                 return;
             }
             // We should prepare all current queries on the host
             PrepareHandler.PrepareAllQueries(h, InternalRef.PreparedQueries.Values, _connectedSessions).Forget();
+        }
+
+        private void OnHostDown(Host h)
+        {
+            _clusterLevelMetricsRegistry.AliveHosts.Decrement(1);
         }
 
         /// <summary>
