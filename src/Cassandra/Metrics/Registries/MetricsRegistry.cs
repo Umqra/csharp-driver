@@ -23,9 +23,11 @@ namespace Cassandra.Metrics.Registries
             );
         }
 
-        public ISessionLevelMetricsRegistry GetSessionLevelMetrics(string keyspace)
+        public ISessionLevelMetricsRegistry GetSessionLevelMetrics(Session session)
         {
-            return new SessionLevelMetricsRegistry(_driverMetricsProvider.WithContext(keyspace ?? "unknown-keyspace"));
+            return new SessionLevelMetricsRegistry(
+                _driverMetricsProvider
+                    .WithContext($"s:{session.GetHashCode()}"));
         }
     }
 }
