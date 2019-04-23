@@ -97,7 +97,7 @@ namespace Cassandra
             Keyspace = keyspace;
             UserDefinedTypes = new UdtMappingDefinitions(this, serializer);
             _connectionPool = new ConcurrentDictionary<IPEndPoint, IHostConnectionPool>();
-            _sessionLevelMetricsRegistryRegistry = Configuration.MetricsRegistry.GetSessionLevelMetrics(keyspace);
+            _sessionLevelMetricsRegistryRegistry = Configuration.MetricsRegistry.GetSessionLevelMetrics(this);
             _sessionLevelMetricsRegistryRegistry.InitializeSessionGauges(this);
         }
 
