@@ -5,7 +5,7 @@ namespace Cassandra.Metrics.Registries
 {
     internal class MetricsRegistry : IMetricsRegistry
     {
-        public static IMetricsRegistry EmptyInstance = new MetricsRegistry(EmptyDriverMetricsProvider.Instance);
+        public static readonly IMetricsRegistry EmptyInstance = new MetricsRegistry(EmptyDriverMetricsProvider.Instance);
 
         private readonly IDriverMetricsProvider _driverMetricsProvider;
 

@@ -4,11 +4,11 @@ namespace Cassandra.Metrics.Registries
 {
     public class RequestHostRetryDecisionMetrics
     {
-        public IDriverCounter Total { get; }
-        public IDriverCounter OnReadTimeout { get; }
-        public IDriverCounter OnWriteTimeout { get; }
-        public IDriverCounter OnUnavailable { get; }
-        public IDriverCounter OnOtherError { get; }
+        private IDriverCounter Total { get; }
+        private IDriverCounter OnReadTimeout { get; }
+        private IDriverCounter OnWriteTimeout { get; }
+        private IDriverCounter OnUnavailable { get; }
+        private IDriverCounter OnOtherError { get; }
 
         public RequestHostRetryDecisionMetrics(IDriverMetricsProvider driverMetricsProvider)
         {
@@ -34,6 +34,7 @@ namespace Cassandra.Metrics.Registries
                     OnUnavailable.Increment(1);
                     break;
                 default:
+                    // todo (sivukhin, 23.04.2019): Send separate metric for 'RequestError' RetryReasons 
                     OnOtherError.Increment(1);
                     break;
             }

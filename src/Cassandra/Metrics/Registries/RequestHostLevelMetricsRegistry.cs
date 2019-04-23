@@ -4,8 +4,8 @@ namespace Cassandra.Metrics.Registries
 {
     internal class RequestHostLevelMetricsRegistry : IRequestLevelMetricsRegistry
     {
-        public RequestHostRetryDecisionMetrics Retries { get; }
-        public RequestHostRetryDecisionMetrics Ignores { get; }
+        private RequestHostRetryDecisionMetrics Retries { get; }
+        private RequestHostRetryDecisionMetrics Ignores { get; }
         public RequestHostRetryDecisionMetrics Errors { get; }
 
         public RequestHostLevelMetricsRegistry(IDriverMetricsProvider driverMetricsProvider)
@@ -27,6 +27,7 @@ namespace Cassandra.Metrics.Registries
                 case RetryDecision.RetryDecisionType.Ignore:
                     Ignores.RecordRequestRetry(reason);
                     break;
+                // todo (sivukhin, 23.04.2019): Send separate metric for 'Rethrow' RetryDecisions
             }
         }
     }
