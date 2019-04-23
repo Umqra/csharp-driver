@@ -5,27 +5,45 @@ namespace Cassandra.Metrics.Registries
 {
     internal class ConnectionLevelMetricsRegistry : IConnectionLevelMetricsRegistry
     {
-        public static readonly IConnectionLevelMetricsRegistry EmptyInstance = new ConnectionLevelMetricsRegistry(EmptyDriverMetricsProvider.Instance);
+        public static readonly IConnectionLevelMetricsRegistry
+            EmptyInstance = new ConnectionLevelMetricsRegistry(EmptyDriverMetricsProvider.Instance, EmptyDriverMetricsProvider.Instance);
 
-        public ConnectionLevelMetricsRegistry(IDriverMetricsProvider driverMetricsProvider)
+        public ConnectionLevelMetricsRegistry(IDriverMetricsProvider hostMetricsProvider, IDriverMetricsProvider sessionMetricsProvider)
         {
-            BytesSent = driverMetricsProvider.Counter("bytes-sent", DriverMeasurementUnit.Bytes);
-            BytesReceived = driverMetricsProvider.Counter("bytes-received", DriverMeasurementUnit.Bytes);
+            BytesSentForHost = hostMetricsProvider.Counter("bytes-sent", DriverMeasurementUnit.Bytes);
+            BytesReceivedForHost = hostMetricsProvider.Counter("bytes-received", DriverMeasurementUnit.Bytes);
+            BytesSentForSession = sessionMetricsProvider.Counter("bytes-sent", DriverMeasurementUnit.Bytes);
+            BytesReceivedForSession = sessionMetricsProvider.Counter("bytes-received", DriverMeasurementUnit.Bytes);
 
-            ConnectionInitErrors = driverMetricsProvider.WithContext("errors")
-                                                        .WithContext("connection")
-                                                        .Counter("init", DriverMeasurementUnit.Errors);
-            AuthenticationErrors = driverMetricsProvider.WithContext("errors")
-                                                        .WithContext("connection")
-                                                        .Counter("auth", DriverMeasurementUnit.Errors);
+            ConnectionInitErrors = hostMetricsProvider.WithContext("errors")
+                                                      .WithContext("connection")
+                                                      .Counter("init", DriverMeasurementUnit.Errors);
+            AuthenticationErrors = hostMetricsProvider.WithContext("errors")
+                                                      .WithContext("connection")
+                                                      .Counter("auth", DriverMeasurementUnit.Errors);
 
             // todo(sivukhin, 14.04.2019): Add information about keyspace/table name
             // todo(sivukhin, 14.04.2019): Move to request-level metrics registry?
-            CqlMessages = driverMetricsProvider.Timer("cql-messages", DriverMeasurementUnit.Requests);
+            CqlMessages = hostMetricsProvider.Timer("cql-messages", DriverMeasurementUnit.Requests);
         }
 
-        public IDriverCounter BytesSent { get; }
-        public IDriverCounter BytesReceived { get; }
+        private IDriverCounter BytesSentForHost { get; }
+        private IDriverCounter BytesReceivedForHost { get; }
+        private IDriverCounter BytesSentForSession { get; }
+        private IDriverCounter BytesReceivedForSession { get; }
+
+        public void RecordBytesSent(long bytes)
+        {
+            BytesSentForHost.Increment(bytes);
+            BytesSentForSession.Increment(bytes);
+        }
+
+        public void RecordBytesReceived(long bytes)
+        {
+            BytesReceivedForHost.Increment(bytes);
+            BytesReceivedForSession.Increment(bytes);
+        }
+
         public IDriverTimer CqlMessages { get; }
         public IDriverCounter ConnectionInitErrors { get; }
         public IDriverCounter AuthenticationErrors { get; }

@@ -16,13 +16,11 @@ namespace Cassandra.Metrics.Registries
         public HostLevelMetricsRegistry(IDriverMetricsProvider driverMetricsProvider)
         {
             _driverMetricsProvider = driverMetricsProvider;
-            ConnectionLevelMetricsRegistry = new ConnectionLevelMetricsRegistry(_driverMetricsProvider);
             RequestLevelMetricsRegistry = new RequestHostLevelMetricsRegistry(_driverMetricsProvider);
             SpeculativeExecutions = _driverMetricsProvider.Counter("speculative-executions", DriverMeasurementUnit.Requests);
         }
 
         public IDriverCounter SpeculativeExecutions { get; }
-        public IConnectionLevelMetricsRegistry ConnectionLevelMetricsRegistry { get; }
         public IRequestLevelMetricsRegistry RequestLevelMetricsRegistry { get; }
 
         public void InitializeHostConnectionPoolGauges(IHostConnectionPool hostConnectionPool)

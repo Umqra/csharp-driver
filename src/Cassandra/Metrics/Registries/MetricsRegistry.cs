@@ -16,26 +16,41 @@ namespace Cassandra.Metrics.Registries
 
         public IClusterLevelMetricsRegistry GetClusterLevelMetrics(Cluster cluster)
         {
-            return new ClusterLevelMetricsRegistry(
-                _driverMetricsProvider
-                    .WithContext("clusters")
-                    .WithContext(cluster.Metadata.ClusterName ?? "unknown-cluster"));
+            return new ClusterLevelMetricsRegistry(BuildProviderForCluster(cluster));
         }
 
         public IHostLevelMetricsRegistry GetHostLevelMetrics(Host host)
         {
-            return new HostLevelMetricsRegistry(
-                _driverMetricsProvider
-                    .WithContext("nodes")
-                    .WithContext(MetricPathFormatExtensions.BuildHostMetricPath(host))
-            );
+            return new HostLevelMetricsRegistry(BuildProviderForHost(host));
         }
 
         public ISessionLevelMetricsRegistry GetSessionLevelMetrics(Session session)
         {
-            return new SessionLevelMetricsRegistry(
-                _driverMetricsProvider
-                    .WithContext($"s:{session.GetHashCode()}"));
+            return new SessionLevelMetricsRegistry(BuildProviderForSession(session));
+        }
+
+        public IConnectionLevelMetricsRegistry GetConnectionLevelMetrics(Host host, Session session)
+        {
+            return new ConnectionLevelMetricsRegistry(BuildProviderForHost(host), BuildProviderForSession(session));
+        }
+
+        private IDriverMetricsProvider BuildProviderForCluster(Cluster cluster)
+        {
+            return _driverMetricsProvider
+                   .WithContext("clusters")
+                   .WithContext(cluster.Metadata.ClusterName ?? "unknown-cluster");
+        }
+
+        private IDriverMetricsProvider BuildProviderForSession(Session session)
+        {
+            return _driverMetricsProvider.WithContext($"s:{session.GetHashCode()}");
+        }
+
+        private IDriverMetricsProvider BuildProviderForHost(Host host)
+        {
+            return _driverMetricsProvider
+                   .WithContext("nodes")
+                   .WithContext(MetricPathFormatExtensions.BuildHostMetricPath(host));
         }
     }
 }
