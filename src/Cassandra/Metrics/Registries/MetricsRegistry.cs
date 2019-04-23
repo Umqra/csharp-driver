@@ -1,9 +1,12 @@
 using Cassandra.Metrics.DriverAbstractions;
+using Cassandra.Metrics.StubImpl;
 
 namespace Cassandra.Metrics.Registries
 {
     internal class MetricsRegistry : IMetricsRegistry
     {
+        public static IMetricsRegistry EmptyInstance = new MetricsRegistry(EmptyDriverMetricsProvider.Instance);
+
         private readonly IDriverMetricsProvider _driverMetricsProvider;
 
         public MetricsRegistry(IDriverMetricsProvider driverMetricsProvider)

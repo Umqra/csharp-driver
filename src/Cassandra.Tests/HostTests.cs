@@ -19,7 +19,7 @@ namespace Cassandra.Tests
         [Test]
         public void BringUpIfDown_Should_Allow_Multiple_Concurrent_Calls()
         {
-            var host = new Host(Address, EmptyMetricsRegistry.Instance);
+            var host = new Host(Address, MetricsRegistry.EmptyInstance);
             var counter = 0;
             host.Up += _ => Interlocked.Increment(ref counter);
             host.SetDown();

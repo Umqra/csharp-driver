@@ -1,11 +1,14 @@
 using System.Xml.Linq;
 using Cassandra.Metrics.DriverAbstractions;
+using Cassandra.Metrics.StubImpl;
 using Cassandra.SessionManagement;
 
 namespace Cassandra.Metrics.Registries
 {
     internal class SessionLevelMetricsRegistry : ISessionLevelMetricsRegistry
     {
+        public static ISessionLevelMetricsRegistry EmptyInstance = new SessionLevelMetricsRegistry(EmptyDriverMetricsProvider.Instance);
+        
         private readonly IDriverMetricsProvider _driverMetricsProvider;
         public IDriverCounter BytesSent { get; }
         public IDriverCounter BytesReceived { get; }

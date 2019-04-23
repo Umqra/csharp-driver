@@ -181,7 +181,7 @@ namespace Cassandra.Connections
         public Configuration Configuration { get; set; }
 
         public Connection(Serializer serializer, IPEndPoint endpoint, Configuration configuration) :
-            this(serializer, endpoint, configuration, new StartupRequestFactory(configuration.StartupOptionsFactory), EmptyConnectionLevelMetricsRegistry.Instance, EmptySessionLevelMetrics.Instance)
+            this(serializer, endpoint, configuration, new StartupRequestFactory(configuration.StartupOptionsFactory), ConnectionLevelMetricsRegistry.EmptyInstance, SessionLevelMetricsRegistry.EmptyInstance)
         {
         }
         
