@@ -32,5 +32,10 @@ namespace Cassandra
         /// Gets the total amount of available streams across all opened connections 
         /// </summary>
         int AvailableStreams { get; }
+        
+        /// <summary>
+        /// Gets the maximum amount of requests that can be in-flight on a single connection at the same time.
+        /// </summary>
+        int MaxRequestsPerConnection { get; }
     }
 }

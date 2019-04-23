@@ -97,7 +97,7 @@ namespace Cassandra.Tests
             var enumerable = Mock.Of<IEnumerable<Host>>();
             var enumerator = Mock.Of<IEnumerator<Host>>();
             
-            var host = new Host(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9047), EmptyMetricsRegistry.Instance);
+            var host = new Host(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9047), MetricsRegistry.EmptyInstance);
             Mock.Get(enumerator).Setup(m => m.MoveNext()).Returns(true);
             Mock.Get(enumerator).SetupGet(m => m.Current).Returns(host);
             Mock.Get(enumerable).Setup(m => m.GetEnumerator()).Returns(enumerator);

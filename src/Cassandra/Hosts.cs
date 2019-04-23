@@ -70,7 +70,7 @@ namespace Cassandra
         public Host Add(IPEndPoint key, IMetricsRegistry metricsRegistry = null)
         {
             // todo(sivukhin, 14.04.2019): Try to avoid coalescing operator here?
-            var newHost = new Host(key, metricsRegistry ?? EmptyMetricsRegistry.Instance);
+            var newHost = new Host(key, metricsRegistry ?? MetricsRegistry.EmptyInstance);
             var host = _hosts.GetOrAdd(key, newHost);
             if (!ReferenceEquals(newHost, host))
             {

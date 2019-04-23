@@ -110,7 +110,7 @@ namespace Cassandra
         /// Creates a new instance of <see cref="Host"/>.
         /// </summary>
         // ReSharper disable once UnusedParameter.Local : Part of the public API
-        public Host(IPEndPoint address, IReconnectionPolicy reconnectionPolicy) : this(address, EmptyMetricsRegistry.Instance)
+        public Host(IPEndPoint address, IReconnectionPolicy reconnectionPolicy) : this(address, MetricsRegistry.EmptyInstance)
         {
         }
 
