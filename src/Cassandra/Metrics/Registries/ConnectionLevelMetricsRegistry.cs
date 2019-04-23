@@ -5,7 +5,7 @@ namespace Cassandra.Metrics.Registries
 {
     internal class ConnectionLevelMetricsRegistry : IConnectionLevelMetricsRegistry
     {
-        public static IConnectionLevelMetricsRegistry EmptyInstance = new ConnectionLevelMetricsRegistry(EmptyDriverMetricsProvider.Instance);
+        public static readonly IConnectionLevelMetricsRegistry EmptyInstance = new ConnectionLevelMetricsRegistry(EmptyDriverMetricsProvider.Instance);
 
         public ConnectionLevelMetricsRegistry(IDriverMetricsProvider driverMetricsProvider)
         {

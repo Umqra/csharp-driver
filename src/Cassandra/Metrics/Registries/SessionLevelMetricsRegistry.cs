@@ -7,7 +7,7 @@ namespace Cassandra.Metrics.Registries
 {
     internal class SessionLevelMetricsRegistry : ISessionLevelMetricsRegistry
     {
-        public static ISessionLevelMetricsRegistry EmptyInstance = new SessionLevelMetricsRegistry(EmptyDriverMetricsProvider.Instance);
+        public static readonly ISessionLevelMetricsRegistry EmptyInstance = new SessionLevelMetricsRegistry(EmptyDriverMetricsProvider.Instance);
         
         private readonly IDriverMetricsProvider _driverMetricsProvider;
         public IDriverCounter BytesSent { get; }

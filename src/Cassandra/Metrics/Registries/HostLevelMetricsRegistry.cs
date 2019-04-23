@@ -1,17 +1,17 @@
 using Cassandra.Metrics.DriverAbstractions;
+using Cassandra.Metrics.StubImpl;
 
 namespace Cassandra.Metrics.Registries
 {
     internal class HostLevelMetricsRegistry : IHostLevelMetricsRegistry
     {
+        public static IHostLevelMetricsRegistry EmptyInstance = new HostLevelMetricsRegistry(EmptyDriverMetricsProvider.Instance);
+
         private readonly IDriverMetricsProvider _driverMetricsProvider;
-        public IDriverGauge OpenConnections { get; private set; }
-        public IDriverGauge AvailableStreams { get; private set; }
-        public IDriverGauge InFlight { get; private set; }
-        public IDriverGauge MaxRequestsPerConnection { get; private set; }
-        public IDriverCounter SpeculativeExecutions { get; }
-        public IConnectionLevelMetricsRegistry ConnectionLevelMetricsRegistry { get; }
-        public IRequestLevelMetricsRegistry RequestLevelMetricsRegistry { get; }
+        private IDriverGauge OpenConnections { get; set; }
+        private IDriverGauge AvailableStreams { get; set; }
+        private IDriverGauge InFlight { get; set; }
+        private IDriverGauge MaxRequestsPerConnection { get; set; }
 
         public HostLevelMetricsRegistry(IDriverMetricsProvider driverMetricsProvider)
         {
@@ -20,6 +20,10 @@ namespace Cassandra.Metrics.Registries
             RequestLevelMetricsRegistry = new RequestHostLevelMetricsRegistry(_driverMetricsProvider);
             SpeculativeExecutions = _driverMetricsProvider.Counter("speculative-executions", DriverMeasurementUnit.Requests);
         }
+
+        public IDriverCounter SpeculativeExecutions { get; }
+        public IConnectionLevelMetricsRegistry ConnectionLevelMetricsRegistry { get; }
+        public IRequestLevelMetricsRegistry RequestLevelMetricsRegistry { get; }
 
         public void InitializeHostConnectionPoolGauges(IHostConnectionPool hostConnectionPool)
         {
