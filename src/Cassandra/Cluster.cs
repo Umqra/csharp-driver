@@ -52,7 +52,7 @@ namespace Cassandra
         private readonly Metadata _metadata;
         private readonly Serializer _serializer;
         private readonly ISessionFactory<IInternalSession> _sessionFactory;
-        private readonly IClusterLevelMetricsRegistry _clusterLevelMetricsRegistry;
+        private IClusterLevelMetricsRegistry _clusterLevelMetricsRegistry = ClusterLevelMetricsRegistry.EmptyInstance;
 
         /// <inheritdoc />
         public event Action<Host> HostAdded;
@@ -160,7 +160,6 @@ namespace Cassandra
             _metadata.ControlConnection = _controlConnection;
             _serializer = _controlConnection.Serializer;
             _sessionFactory = configuration.SessionFactoryBuilder.BuildWithCluster(this);
-            _clusterLevelMetricsRegistry = configuration.MetricsRegistry.GetClusterLevelMetrics(this);
         }
 
         /// <summary>
@@ -253,11 +252,7 @@ namespace Cassandra
                 _logger.Info("Connecting to cluster using {0}", GetAssemblyInfo());
                 try
                 {
-                    // Only abort the async operations when at least twice the time for ConnectTimeout per host passed
-                    var initialAbortTimeout = Configuration.SocketOptions.ConnectTimeoutMillis * 2 *
-                                              _metadata.Hosts.Count;
-                    initialAbortTimeout = Math.Max(initialAbortTimeout, ControlConnection.MetadataAbortTimeout);
-                    await _controlConnection.Init().WaitToCompleteAsync(initialAbortTimeout).ConfigureAwait(false);
+                    await InitializeControlConnection().ConfigureAwait(false);
 
                     // Initialize policies
                     Configuration.Policies.LoadBalancingPolicy.Initialize(this);
@@ -296,6 +291,18 @@ namespace Cassandra
             {
                 _initLock.Release();
             }
+        }
+
+        private async Task InitializeControlConnection()
+        {
+            // Only abort the async operations when at least twice the time for ConnectTimeout per host passed
+            var initialAbortTimeout = Configuration.SocketOptions.ConnectTimeoutMillis * 2 *
+                                      _metadata.Hosts.Count;
+            initialAbortTimeout = Math.Max(initialAbortTimeout, ControlConnection.MetadataAbortTimeout);
+            await _controlConnection.Init().WaitToCompleteAsync(initialAbortTimeout).ConfigureAwait(false);
+            // note (sivukhin, 23.04.2019): _controlConnection fetch information about cluster metadata (clusterName, for example),
+            // note (sivukhin, 23.04.2019): so we need to wait initialization of the _controlConnection  
+            _clusterLevelMetricsRegistry = Configuration.MetricsRegistry.GetClusterLevelMetrics(this);
         }
 
         private static string GetAssemblyInfo()
