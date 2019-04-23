@@ -10,8 +10,6 @@ namespace Cassandra.Metrics.Registries
         public static readonly ISessionLevelMetricsRegistry EmptyInstance = new SessionLevelMetricsRegistry(EmptyDriverMetricsProvider.Instance);
         
         private readonly IDriverMetricsProvider _driverMetricsProvider;
-        public IDriverCounter BytesSent { get; }
-        public IDriverCounter BytesReceived { get; }
         public IRequestSessionLevelMetricsRegistry RequestLevelMetricsRegistry { get; }
         public IDriverGauge ConnectedNodes { get; private set; }
 
@@ -19,8 +17,6 @@ namespace Cassandra.Metrics.Registries
         public SessionLevelMetricsRegistry(IDriverMetricsProvider driverMetricsProvider)
         {
             _driverMetricsProvider = driverMetricsProvider;
-            BytesSent = driverMetricsProvider.Counter("bytes-sent", DriverMeasurementUnit.Bytes);
-            BytesReceived = driverMetricsProvider.Counter("bytes-received", DriverMeasurementUnit.Bytes);
             RequestLevelMetricsRegistry = new RequestSessionLevelMetricsRegistry(driverMetricsProvider);
         }
 

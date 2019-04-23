@@ -84,8 +84,7 @@ namespace Cassandra.Connections
         private FrameHeader _receivingHeader;
         private int _writeState = Connection.WriteStateInit;
         private int _inFlight;
-        private IConnectionLevelMetricsRegistry _connectionLevelMetricsRegistry;
-        private readonly ISessionLevelMetricsRegistry _sessionLevelMetricsRegistry;
+        private readonly IConnectionLevelMetricsRegistry _connectionLevelMetricsRegistry;
 
         /// <summary>
         /// The event that represents a event RESPONSE from a Cassandra node
@@ -181,16 +180,16 @@ namespace Cassandra.Connections
         public Configuration Configuration { get; set; }
 
         public Connection(Serializer serializer, IPEndPoint endpoint, Configuration configuration) :
-            this(serializer, endpoint, configuration, new StartupRequestFactory(configuration.StartupOptionsFactory), ConnectionLevelMetricsRegistry.EmptyInstance, SessionLevelMetricsRegistry.EmptyInstance)
+            this(serializer, endpoint, configuration, new StartupRequestFactory(configuration.StartupOptionsFactory), ConnectionLevelMetricsRegistry.EmptyInstance)
         {
         }
         
-        public Connection(Serializer serializer, IPEndPoint endpoint, Configuration configuration, IConnectionLevelMetricsRegistry connectionLevelMetricsRegistry, ISessionLevelMetricsRegistry sessionLevelMetricsRegistry) :
-            this(serializer, endpoint, configuration, new StartupRequestFactory(configuration.StartupOptionsFactory), connectionLevelMetricsRegistry, sessionLevelMetricsRegistry)
+        public Connection(Serializer serializer, IPEndPoint endpoint, Configuration configuration, IConnectionLevelMetricsRegistry connectionLevelMetricsRegistry) :
+            this(serializer, endpoint, configuration, new StartupRequestFactory(configuration.StartupOptionsFactory), connectionLevelMetricsRegistry)
         {
         }
 
-        internal Connection(Serializer serializer, IPEndPoint endpoint, Configuration configuration, IStartupRequestFactory startupRequestFactory, IConnectionLevelMetricsRegistry connectionLevelMetricsRegistry, ISessionLevelMetricsRegistry sessionLevelMetricsRegistry)
+        internal Connection(Serializer serializer, IPEndPoint endpoint, Configuration configuration, IStartupRequestFactory startupRequestFactory, IConnectionLevelMetricsRegistry connectionLevelMetricsRegistry)
         {
             _serializer = serializer ?? throw new ArgumentNullException(nameof(serializer));
             Configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
@@ -198,7 +197,6 @@ namespace Cassandra.Connections
             _tcpSocket = new TcpSocket(endpoint, configuration.SocketOptions, configuration.ProtocolOptions.SslOptions);
             _idleTimer = new Timer(IdleTimeoutHandler, null, Timeout.Infinite, Timeout.Infinite);
             _connectionLevelMetricsRegistry = connectionLevelMetricsRegistry;
-            _sessionLevelMetricsRegistry = sessionLevelMetricsRegistry;
         }
 
         private void IncrementInFlight()
@@ -520,8 +518,7 @@ namespace Cassandra.Connections
                 return;
             }
             
-            _connectionLevelMetricsRegistry.BytesReceived.Increment(bytesReceived);
-            _sessionLevelMetricsRegistry.BytesReceived.Increment(bytesReceived);
+            _connectionLevelMetricsRegistry.RecordBytesReceived(bytesReceived);
             //We are currently using an IO Thread
             //Parse the data received
             var streamIdAvailable = ReadParse(buffer, bytesReceived);
@@ -860,10 +857,8 @@ namespace Cassandra.Connections
                 }
                 //We will not use the request any more, stop reference it.
                 state.Request = null;
-                // todo(sivukhin, 14.04.2019): Refactor this part a little?
                 totalLength += frameLength;
-                _connectionLevelMetricsRegistry.BytesSent.Increment(frameLength);
-                _sessionLevelMetricsRegistry.BytesSent.Increment(frameLength);
+                _connectionLevelMetricsRegistry.RecordBytesSent(frameLength);
             }
             if (totalLength == 0L)
             {

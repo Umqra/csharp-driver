@@ -23,6 +23,7 @@ using Cassandra.Collections;
 using Cassandra.Metrics;
 using Cassandra.Metrics.Registries;
 using Cassandra.Serialization;
+using Cassandra.SessionManagement;
 using Cassandra.Tasks;
 
 namespace Cassandra.Connections
@@ -70,7 +71,7 @@ namespace Cassandra.Connections
         private readonly Host _host;
         private readonly Configuration _config;
         private readonly Serializer _serializer;
-        private readonly ISessionLevelMetricsRegistry _sessionLevelMetricsRegistry;
+        private readonly Session _session;
         private readonly CopyOnWriteList<IConnection> _connections = new CopyOnWriteList<IConnection>();
         private readonly HashedWheelTimer _timer;
         private readonly object _allConnectionClosedEventLock = new object();
@@ -112,7 +113,7 @@ namespace Cassandra.Connections
         /// <inheritdoc />
         public IConnection[] ConnectionsSnapshot => _connections.GetSnapshot();
 
-        public HostConnectionPool(Host host, Configuration config, Serializer serializer, ISessionLevelMetricsRegistry sessionLevelMetricsRegistry)
+        public HostConnectionPool(Host host, Configuration config, Serializer serializer, Session session)
         {
             _host = host;
             _host.Down += OnHostDown;
@@ -123,7 +124,7 @@ namespace Cassandra.Connections
             _maxRequestsPerConnection = config.GetPoolingOptions(serializer.ProtocolVersion)
                                               .GetMaxRequestsPerConnection();
             _serializer = serializer;
-            _sessionLevelMetricsRegistry = sessionLevelMetricsRegistry;
+            _session = session;
             _timer = config.Timer;
             _reconnectionSchedule = config.Policies.ReconnectionPolicy.NewSchedule();
             _expectedConnectionLength = 1;
@@ -254,7 +255,7 @@ namespace Cassandra.Connections
 
         public virtual async Task<IConnection> DoCreateAndOpen()
         {
-            var c = _config.ConnectionFactory.Create(_serializer, _host.Address, _config, _host.HostLevelMetricsRegistry.ConnectionLevelMetricsRegistry, _sessionLevelMetricsRegistry);
+            var c = _config.ConnectionFactory.Create(_serializer, _host.Address, _config, _config.MetricsRegistry.GetConnectionLevelMetrics(_host, _session));
             try
             {
                 await c.Open().ConfigureAwait(false);
