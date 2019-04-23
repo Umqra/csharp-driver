@@ -4,38 +4,38 @@ namespace Cassandra.Metrics.Registries
 {
     public class RequestHostRetryDecisionMetrics
     {
-        private IDriverCounter Total { get; }
-        private IDriverCounter OnReadTimeout { get; }
-        private IDriverCounter OnWriteTimeout { get; }
-        private IDriverCounter OnUnavailable { get; }
-        private IDriverCounter OnOtherError { get; }
+        private readonly IDriverCounter _onOtherError;
+        private readonly IDriverCounter _onReadTimeout;
+        private readonly IDriverCounter _onUnavailable;
+        private readonly IDriverCounter _onWriteTimeout;
+        private readonly IDriverCounter _total;
 
         public RequestHostRetryDecisionMetrics(IDriverMetricsProvider driverMetricsProvider)
         {
-            Total = driverMetricsProvider.Counter("total", DriverMeasurementUnit.None);
-            OnReadTimeout = driverMetricsProvider.Counter("read-timeout", DriverMeasurementUnit.None);
-            OnWriteTimeout = driverMetricsProvider.Counter("write-timeout", DriverMeasurementUnit.None);
-            OnUnavailable = driverMetricsProvider.Counter("unavailable", DriverMeasurementUnit.None);
-            OnOtherError = driverMetricsProvider.Counter("other", DriverMeasurementUnit.None);
+            _total = driverMetricsProvider.Counter("total", DriverMeasurementUnit.None);
+            _onReadTimeout = driverMetricsProvider.Counter("read-timeout", DriverMeasurementUnit.None);
+            _onWriteTimeout = driverMetricsProvider.Counter("write-timeout", DriverMeasurementUnit.None);
+            _onUnavailable = driverMetricsProvider.Counter("unavailable", DriverMeasurementUnit.None);
+            _onOtherError = driverMetricsProvider.Counter("other", DriverMeasurementUnit.None);
         }
 
         public void RecordRequestRetry(RetryDecision.RetryReasonType reason)
         {
-            Total.Increment(1);
+            _total.Increment(1);
             switch (reason)
             {
                 case RetryDecision.RetryReasonType.ReadTimeOut:
-                    OnReadTimeout.Increment(1);
+                    _onReadTimeout.Increment(1);
                     break;
                 case RetryDecision.RetryReasonType.WriteTimeOut:
-                    OnWriteTimeout.Increment(1);
+                    _onWriteTimeout.Increment(1);
                     break;
                 case RetryDecision.RetryReasonType.Unavailable:
-                    OnUnavailable.Increment(1);
+                    _onUnavailable.Increment(1);
                     break;
                 default:
                     // todo (sivukhin, 23.04.2019): Send separate metric for 'RequestError' RetryReasons 
-                    OnOtherError.Increment(1);
+                    _onOtherError.Increment(1);
                     break;
             }
         }

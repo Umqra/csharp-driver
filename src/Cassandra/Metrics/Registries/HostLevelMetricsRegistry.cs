@@ -8,10 +8,10 @@ namespace Cassandra.Metrics.Registries
         public static IHostLevelMetricsRegistry EmptyInstance = new HostLevelMetricsRegistry(EmptyDriverMetricsProvider.Instance);
 
         private readonly IDriverMetricsProvider _driverMetricsProvider;
-        private IDriverGauge OpenConnections { get; set; }
-        private IDriverGauge AvailableStreams { get; set; }
-        private IDriverGauge InFlight { get; set; }
-        private IDriverGauge MaxRequestsPerConnection { get; set; }
+        private IDriverGauge _availableStreams;
+        private IDriverGauge _inFlight;
+        private IDriverGauge _maxRequestsPerConnection;
+        private IDriverGauge _openConnections;
 
         public HostLevelMetricsRegistry(IDriverMetricsProvider driverMetricsProvider)
         {
@@ -27,13 +27,13 @@ namespace Cassandra.Metrics.Registries
         {
             // todo(sivukhin, 14.04.2019): Possible <<memory leak>>, because gauges will live until application termination
             var poolDriverMetricsProvider = _driverMetricsProvider.WithContext("pool");
-            OpenConnections = poolDriverMetricsProvider.Gauge("open-connections",
+            _openConnections = poolDriverMetricsProvider.Gauge("open-connections",
                 () => hostConnectionPool.OpenConnections, DriverMeasurementUnit.None);
-            AvailableStreams = poolDriverMetricsProvider.Gauge("available-streams",
+            _availableStreams = poolDriverMetricsProvider.Gauge("available-streams",
                 () => hostConnectionPool.AvailableStreams, DriverMeasurementUnit.None);
-            InFlight = poolDriverMetricsProvider.Gauge("in-flight",
+            _inFlight = poolDriverMetricsProvider.Gauge("in-flight",
                 () => hostConnectionPool.InFlight, DriverMeasurementUnit.None);
-            MaxRequestsPerConnection = poolDriverMetricsProvider.Gauge("max-requests-per-connection",
+            _maxRequestsPerConnection = poolDriverMetricsProvider.Gauge("max-requests-per-connection",
                 () => hostConnectionPool.AvailableStreams, DriverMeasurementUnit.Requests);
         }
     }
