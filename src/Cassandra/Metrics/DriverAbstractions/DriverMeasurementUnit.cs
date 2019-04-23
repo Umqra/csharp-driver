@@ -5,6 +5,7 @@ namespace Cassandra.Metrics.DriverAbstractions
         Bytes,
         Errors,
         Requests,
+        Connections,
         None,
     }
 }
