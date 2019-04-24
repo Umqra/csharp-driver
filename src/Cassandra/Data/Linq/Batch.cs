@@ -17,6 +17,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Cassandra.Metrics.Registries;
 using Cassandra.Tasks;
 
 namespace Cassandra.Data.Linq
@@ -35,6 +36,10 @@ namespace Cassandra.Data.Linq
             get { return null; }
         }
 
+        
+        // todo(sivukhin, 24.04.2019): Add separate type for BatchV1?
+        public override DriverStatementType StatementType { get; } = DriverStatementType.Batch;
+        
         public QueryTrace QueryTrace { get; private set; }
 
         internal Batch(ISession session, BatchType batchType)

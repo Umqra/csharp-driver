@@ -5,7 +5,7 @@ namespace Cassandra.Metrics.Registries
 {
     internal interface ISessionLevelMetricsRegistry
     {
-        IRequestSessionLevelMetricsRegistry RequestLevelMetricsRegistry { get; }
+        IRequestSessionLevelMetricsRegistry GetRequestLevelMetrics(IStatement statement);
         void InitializeSessionGauges(IInternalSession session);
     }
 }

@@ -56,8 +56,8 @@ namespace Cassandra.Requests
         /// </summary>
         public RequestHandler(IInternalSession session, Serializer serializer, IRequest request, IStatement statement)
         {
-            _requestResultHandler = new RequestResultHandlerWithMetrics(session.SessionLevelMetricsRegistry.RequestLevelMetricsRegistry);
             _session = session ?? throw new ArgumentNullException(nameof(session));
+            _requestResultHandler = new RequestResultHandlerWithMetrics(session.SessionLevelMetricsRegistry.GetRequestLevelMetrics(statement));
             _request = request;
             Serializer = serializer ?? throw new ArgumentNullException(nameof(session));
             Statement = statement;

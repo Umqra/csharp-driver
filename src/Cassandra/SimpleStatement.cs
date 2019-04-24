@@ -17,6 +17,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Cassandra.Metrics.Registries;
 using Cassandra.Requests;
 using Cassandra.Serialization;
 
@@ -41,6 +42,8 @@ namespace Cassandra
             get { return _query; }
         }
 
+        public override DriverStatementType StatementType { get; } = DriverStatementType.Unknown;
+
         /// <summary>
         /// Gets the routing key for the query.
         /// <para>
@@ -55,6 +58,7 @@ namespace Cassandra
                 {
                     return _routingKey;
                 }
+
                 if (_routingValues == null)
                 {
                     return null;
@@ -71,8 +75,8 @@ namespace Cassandra
                 // Calculate the routing key
                 return RoutingKey.Compose(
                     _routingValues
-                    .Select(value => new RoutingKey(serializer.Serialize(value)))
-                    .ToArray());
+                        .Select(value => new RoutingKey(serializer.Serialize(value)))
+                        .ToArray());
             }
         }
 
@@ -161,10 +165,12 @@ namespace Cassandra
             {
                 throw new ArgumentNullException("valuesDictionary");
             }
+
             if (query == null)
             {
                 throw new ArgumentNullException("query");
             }
+
             //The order of the keys and values is unspecified, but is guaranteed to be both in the same order.
             SetParameterNames(valuesDictionary.Keys);
             base.SetValues(valuesDictionary.Values.ToArray());
@@ -254,6 +260,7 @@ namespace Cassandra
                 SetParameterNames(keyValues.Keys);
                 values = keyValues.Values.ToArray();
             }
+
             base.SetValues(values);
         }
 

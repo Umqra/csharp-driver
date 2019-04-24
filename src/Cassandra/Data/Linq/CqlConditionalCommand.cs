@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Cassandra.Mapping;
+using Cassandra.Metrics.Registries;
 using Cassandra.Tasks;
 
 namespace Cassandra.Data.Linq
@@ -51,6 +52,8 @@ namespace Cassandra.Data.Linq
             var task = ExecuteAsync();
             return TaskHelper.WaitToComplete(task, queryAbortTimeout);
         }
+
+        public override DriverStatementType StatementType { get; } = DriverStatementType.Conditional;
 
         public new CqlConditionalCommand<TEntity> SetConsistencyLevel(ConsistencyLevel? consistencyLevel)
         {

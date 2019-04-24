@@ -18,6 +18,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using Cassandra.Mapping;
 using Cassandra.Mapping.Statements;
+using Cassandra.Metrics.Registries;
 
 namespace Cassandra.Data.Linq
 {
@@ -48,5 +49,7 @@ namespace Cassandra.Data.Linq
             object[] _;
             return GetCql(out _);
         }
+
+        public override DriverStatementType StatementType { get; } = DriverStatementType.Delete;
     }
 }

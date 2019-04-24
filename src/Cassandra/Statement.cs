@@ -17,6 +17,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using Cassandra.Metrics.Registries;
 using Cassandra.Requests;
 
 namespace Cassandra
@@ -67,6 +68,8 @@ namespace Cassandra
 
         /// <inheritdoc />
         public DateTimeOffset? Timestamp { get; private set; }
+
+        public abstract DriverStatementType StatementType { get; }
 
         /// <inheritdoc />
         public bool AutoPage
