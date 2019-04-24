@@ -16,6 +16,7 @@
 
 using System;
 using System.Linq;
+using Cassandra.Metrics.Registries;
 using Cassandra.Requests;
 using Cassandra.Serialization;
 
@@ -42,6 +43,8 @@ namespace Cassandra
             get { return _preparedStatement; }
         }
 
+
+        public override DriverStatementType StatementType { get; } = DriverStatementType.Bound;
 
         /// <summary>
         ///  Gets the routing key for this bound query. <p> This method will return a
