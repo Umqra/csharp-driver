@@ -6,10 +6,13 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using App.Metrics;
+using App.Metrics.Formatters.Graphite;
 using App.Metrics.Gauge;
+using App.Metrics.Reporting.Graphite;
 using App.Metrics.Scheduling;
 using Cassandra.Data.Linq;
 using Cassandra.Mapping;
+using Cassandra.Metrics.AppMetricsImpl;
 using Cassandra.TestConsole.LoadGenerators;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Console;
@@ -30,7 +33,23 @@ namespace Cassandra.TestConsole
 
             var metrics = new MetricsBuilder()
                           .SampleWith.ForwardDecaying()
-                          .Report.ToGraphite(GraphiteUri)
+                          .Configuration.Configure(options =>
+                          {
+                              options.AddEnvTag("sivukhin.driver");
+                              options.AddAppTag();
+                              options.AddServerTag();
+                          })
+                          .Report.ToGraphite(new MetricsReportingGraphiteOptions
+                          {
+                              Graphite = new GraphiteOptions(new Uri(GraphiteUri)),
+                              MetricsOutputFormatter = new MetricsGraphitePlainTextProtocolOutputFormatter(new MetricsGraphitePlainTextProtocolOptions
+                              {
+                                  MetricPointTextWriter = new CassandraDriverGraphitePointTextWriter(
+                                      includeTagName: false,
+                                      intrinsicTagsToProcess: new[] {"env", "app", "server"}
+                                  )
+                              })
+                          })
                           .Build();
             var scheduler = new AppMetricsTaskScheduler(TimeSpan.FromSeconds(1),
                 async () => { await Task.WhenAll(metrics.ReportRunner.RunAllAsync()).ConfigureAwait(false); }
@@ -41,7 +60,7 @@ namespace Cassandra.TestConsole
 
             MappingConfiguration.Global.Define<SongMappings>();
             var cluster = Cluster.Builder()
-                                 .WithPoolingOptions(new PoolingOptions().SetMaxRequestsPerConnection(30))
+                                 .WithPoolingOptions(new PoolingOptions())
                                  .WithSocketOptions(new SocketOptions())
                                  .AddContactPoints(ContactPoint)
                                  .WithAppMetrics(metrics)

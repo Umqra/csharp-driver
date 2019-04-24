@@ -680,14 +680,12 @@ namespace Cassandra
         }
 
         // todo (sivukhin, 12.04.2019): Unify client API for all target frameworks 
-#if NETSTANDARD2_0
         public Builder WithAppMetrics(App.Metrics.IMetricsRoot metricsRoot)
         {
             _driverMetricsProvider =
                 new Metrics.AppMetricsImpl.AppMetricsDriverMetricsProvider(metricsRoot);
             return this;
         }
-#endif
 
         /// <summary>
         ///  Build the cluster with the configured set of initial contact points and policies.

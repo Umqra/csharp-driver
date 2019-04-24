@@ -1,5 +1,3 @@
-#if NETSTANDARD2_0
-
 using App.Metrics.Meter;
 using Cassandra.Metrics.DriverAbstractions;
 
@@ -19,4 +17,3 @@ namespace Cassandra.Metrics.AppMetricsImpl
         }
     }
 }
-#endif

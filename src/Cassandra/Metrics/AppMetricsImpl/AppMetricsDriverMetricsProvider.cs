@@ -1,5 +1,3 @@
-#if NETSTANDARD2_0
-
 using System;
 using System.Linq;
 using App.Metrics;
@@ -89,4 +87,3 @@ namespace Cassandra.Metrics.AppMetricsImpl
         }
     }
 }
-#endif
