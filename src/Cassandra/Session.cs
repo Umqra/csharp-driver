@@ -308,7 +308,7 @@ namespace Cassandra
         {
             var hostPool = _connectionPool.GetOrAdd(host.Address, address =>
             {
-                var newPool = Configuration.HostConnectionPoolFactory.Create(host, Configuration, _serializer, this);
+                var newPool = Configuration.HostConnectionPoolFactory.Create(host, Configuration, _serializer, Configuration.MetricsRegistry.GetConnectionLevelMetrics(host, this));
                 newPool.AllConnectionClosed += InternalRef.OnAllConnectionClosed;
                 newPool.SetDistance(distance);
                 return newPool;

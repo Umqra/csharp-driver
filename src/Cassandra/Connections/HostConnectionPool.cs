@@ -71,7 +71,7 @@ namespace Cassandra.Connections
         private readonly Host _host;
         private readonly Configuration _config;
         private readonly Serializer _serializer;
-        private readonly Session _session;
+        private readonly IConnectionLevelMetricsRegistry _connectionLevelMetricsRegistry;
         private readonly CopyOnWriteList<IConnection> _connections = new CopyOnWriteList<IConnection>();
         private readonly HashedWheelTimer _timer;
         private readonly object _allConnectionClosedEventLock = new object();
@@ -113,7 +113,12 @@ namespace Cassandra.Connections
         /// <inheritdoc />
         public IConnection[] ConnectionsSnapshot => _connections.GetSnapshot();
 
-        public HostConnectionPool(Host host, Configuration config, Serializer serializer, Session session)
+        public HostConnectionPool(Host host, Configuration config, Serializer serializer) : this(host, config, serializer,
+            ConnectionLevelMetricsRegistry.EmptyInstance)
+        {
+        }
+        
+        public HostConnectionPool(Host host, Configuration config, Serializer serializer, IConnectionLevelMetricsRegistry connectionLevelMetricsRegistry)
         {
             _host = host;
             _host.Down += OnHostDown;
@@ -124,7 +129,7 @@ namespace Cassandra.Connections
             _maxRequestsPerConnection = config.GetPoolingOptions(serializer.ProtocolVersion)
                                               .GetMaxRequestsPerConnection();
             _serializer = serializer;
-            _session = session;
+            _connectionLevelMetricsRegistry = connectionLevelMetricsRegistry;
             _timer = config.Timer;
             _reconnectionSchedule = config.Policies.ReconnectionPolicy.NewSchedule();
             _expectedConnectionLength = 1;
@@ -255,7 +260,7 @@ namespace Cassandra.Connections
 
         public virtual async Task<IConnection> DoCreateAndOpen()
         {
-            var c = _config.ConnectionFactory.Create(_serializer, _host.Address, _config, _config.MetricsRegistry.GetConnectionLevelMetrics(_host, _session));
+            var c = new Connection(_serializer, _host.Address, _config, _connectionLevelMetricsRegistry);
             try
             {
                 await c.Open().ConfigureAwait(false);
