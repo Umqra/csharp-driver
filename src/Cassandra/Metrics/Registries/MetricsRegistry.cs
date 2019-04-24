@@ -48,9 +48,10 @@ namespace Cassandra.Metrics.Registries
 
         private IDriverMetricsProvider BuildProviderForHost(Host host)
         {
+            var hostName = $"{host.Address.ToString().Replace('.', '_')}";
             return _driverMetricsProvider
                    .WithContext("nodes")
-                   .WithContext(MetricPathFormatExtensions.BuildHostMetricPath(host));
+                   .WithContext(hostName);
         }
     }
 }
