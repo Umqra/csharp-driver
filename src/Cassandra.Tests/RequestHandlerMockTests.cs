@@ -34,6 +34,12 @@ namespace Cassandra.Tests
     [SuppressMessage("ReSharper", "PossibleMultipleEnumeration")]
     public class RequestHandlerMockTests
     {
+        private static IInternalSession GetMockInternalSession()
+        {
+            var sessionMock = Mock.Of<IInternalSession>();
+            Mock.Get(sessionMock).SetupGet(m => m.SessionLevelMetricsRegistry).Returns(SessionLevelMetricsRegistry.EmptyInstance);
+            return sessionMock;
+        }
         private static Configuration GetConfig(ILoadBalancingPolicy lbp)
         {
             var requestExecutionFactory = Mock.Of<IRequestExecutionFactory>();
@@ -61,7 +67,7 @@ namespace Cassandra.Tests
         [Test]
         public void Should_ThrowNoHostAvailableException_When_QueryPlanMoveNextReturnsFalse()
         {
-            var sessionMock = Mock.Of<IInternalSession>();
+            var sessionMock = GetMockInternalSession();
             var lbpMock = Mock.Of<ILoadBalancingPolicy>();
             Mock.Get(sessionMock).SetupGet(m => m.Cluster.Configuration).Returns(RequestHandlerMockTests.GetConfig(lbpMock));
             var enumerable = Mock.Of<IEnumerable<Host>>();
@@ -81,7 +87,7 @@ namespace Cassandra.Tests
         [Test]
         public void Should_ThrowNoHostAvailableException_When_QueryPlanMoveNextReturnsTrueButCurrentReturnsNull()
         {
-            var sessionMock = Mock.Of<IInternalSession>();
+            var sessionMock = GetMockInternalSession();
             var lbpMock = Mock.Of<ILoadBalancingPolicy>();
             Mock.Get(sessionMock).SetupGet(m => m.Cluster.Configuration).Returns(RequestHandlerMockTests.GetConfig(lbpMock));
             var enumerable = Mock.Of<IEnumerable<Host>>();
@@ -102,7 +108,7 @@ namespace Cassandra.Tests
         [Test]
         public void Should_ReturnHost_When_QueryPlanMoveNextReturnsTrueAndCurrentReturnsHost()
         {
-            var sessionMock = Mock.Of<IInternalSession>();
+            var sessionMock = GetMockInternalSession();
             var lbpMock = Mock.Of<ILoadBalancingPolicy>();
             Mock.Get(sessionMock).SetupGet(m => m.Cluster.Configuration).Returns(RequestHandlerMockTests.GetConfig(lbpMock));
             var enumerable = Mock.Of<IEnumerable<Host>>();
