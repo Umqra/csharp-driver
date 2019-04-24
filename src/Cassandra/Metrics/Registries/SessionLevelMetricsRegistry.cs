@@ -22,7 +22,10 @@ namespace Cassandra.Metrics.Registries
             _statementRequestLevelMetricsRegistries = new Dictionary<DriverStatementType, IRequestSessionLevelMetricsRegistry>();
             foreach (var driverStatementType in Enum.GetValues(typeof(DriverStatementType)).Cast<DriverStatementType>())
             {
-                var metrics = new RequestSessionLevelMetricsRegistry(_driverMetricsProvider.WithContext(driverStatementType.ToString()));
+                var metrics = new RequestSessionLevelMetricsRegistry(
+                    _driverMetricsProvider
+                        .WithContext("requests")
+                        .WithContext(driverStatementType.ToString()));
                 _statementRequestLevelMetricsRegistries[driverStatementType] = metrics;
             }
         }
