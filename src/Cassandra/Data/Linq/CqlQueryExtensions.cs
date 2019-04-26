@@ -40,10 +40,11 @@ namespace Cassandra.Data.Linq
 
         internal static async Task<RowSet> SendQuery(this IInternalStatement baseStatement, string cqlQuery, params object[] values)
         {
-            var session = baseStatement.GetTable().GetSession();
+            var table = baseStatement.GetTable();
+            var session = table.GetSession();
             var cqlInstance = Cql.New(baseStatement.StatementType, cqlQuery, values);
             var statement = await baseStatement.StatementFactory.GetStatementAsync(session, cqlInstance).ConfigureAwait(false);
-            statement.StatementTable = new TableKeyProperties(baseStatement.GetTable());
+            statement.StatementTable = new TableKeyProperties(session.Keyspace, table.Name);
             baseStatement.CopyQueryPropertiesTo(statement);
             return await session.ExecuteAsync(statement).ConfigureAwait(false);
         }

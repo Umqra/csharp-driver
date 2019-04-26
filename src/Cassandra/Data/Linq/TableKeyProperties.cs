@@ -2,13 +2,18 @@ namespace Cassandra.Data.Linq
 {
     public class TableKeyProperties
     {
-        public string Name { get; }
-        public string Keyspace { get; }
+        public string KeyspaceName { get; }
+        public string TableName { get; }
 
-        public TableKeyProperties(ITable table)
+        public TableKeyProperties(string keyspaceNameName, string tableTableName)
         {
-            Name = table.Name;
-            Keyspace = table.KeyspaceName;
+            KeyspaceName = keyspaceNameName;
+            TableName = tableTableName;
+        }
+
+        public bool IsEmpty()
+        {
+            return string.IsNullOrEmpty(TableName) || string.IsNullOrEmpty(KeyspaceName);
         }
     }
 }
