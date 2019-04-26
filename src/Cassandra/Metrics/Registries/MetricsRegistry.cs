@@ -43,7 +43,7 @@ namespace Cassandra.Metrics.Registries
 
         private IDriverMetricsProvider BuildProviderForSession(Session session)
         {
-            return _driverMetricsProvider.WithContext($"s:{session.GetHashCode()}");
+            return _driverMetricsProvider.WithContext($"s_{session.GetHashCode()}");
         }
 
         private IDriverMetricsProvider BuildProviderForHost(Host host)
