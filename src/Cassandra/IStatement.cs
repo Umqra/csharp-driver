@@ -16,6 +16,7 @@
 
 using System;
 using System.Collections.Generic;
+using Cassandra.Data.Linq;
 using Cassandra.Metrics.Registries;
 
 namespace Cassandra
@@ -32,6 +33,11 @@ namespace Cassandra
         /// Internal representation of the statement that is exposed in the query metrics path 
         /// </summary>
         DriverStatementType StatementType { get; set; }
+        
+        /// <summary>
+        /// Target table for statement 
+        /// </summary>
+        TableKeyProperties StatementTable { get; set; }
         
         /// <summary>
         /// Determines if the <see cref="RowSet"/> returned when executing this <c>IStatement</c> will automatically fetch the following result pages. Defaults to true.

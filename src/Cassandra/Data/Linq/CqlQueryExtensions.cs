@@ -17,12 +17,14 @@
 using System;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Threading.Tasks;
+using Cassandra.Mapping;
 
 namespace Cassandra.Data.Linq
 {
     public static class CqlQueryExtensions
     {
-        internal static void CopyQueryPropertiesTo(this Statement src, Statement dst)
+        internal static void CopyQueryPropertiesTo(this IStatement src, IStatement dst)
         {
             dst.EnableTracing(src.IsTracing)
                .SetConsistencyLevel(src.ConsistencyLevel)
@@ -34,6 +36,16 @@ namespace Cassandra.Data.Linq
             {
                 dst.SetSerialConsistencyLevel(src.SerialConsistencyLevel);
             }
+        }
+
+        internal static async Task<RowSet> SendQuery(this IInternalStatement baseStatement, string cqlQuery, params object[] values)
+        {
+            var session = baseStatement.GetTable().GetSession();
+            var cqlInstance = Cql.New(baseStatement.StatementType, cqlQuery, values);
+            var statement = await baseStatement.StatementFactory.GetStatementAsync(session, cqlInstance).ConfigureAwait(false);
+            statement.StatementTable = new TableKeyProperties(baseStatement.GetTable());
+            baseStatement.CopyQueryPropertiesTo(statement);
+            return await session.ExecuteAsync(statement).ConfigureAwait(false);
         }
 
         /// <summary>

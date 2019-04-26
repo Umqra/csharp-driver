@@ -11,7 +11,7 @@ namespace Cassandra.Mapping
         /// <summary>
         /// Represents underlying type of the statement   
         /// </summary>
-        public DriverStatementType CqlStatementType { get; private set; } = DriverStatementType.RawQuery;
+        public DriverStatementType CqlStatementType { get; }
         
         /// <summary>
         /// The CQL string.
