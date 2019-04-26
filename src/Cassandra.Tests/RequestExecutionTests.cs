@@ -17,6 +17,7 @@
 using System;
 using System.Collections.Generic;
 using System.Net;
+using Cassandra.Connections;
 using Cassandra.Requests;
 using Cassandra.Responses;
 using Cassandra.Serialization;
