@@ -1,12 +1,13 @@
 using Cassandra.Metrics.DriverAbstractions;
+using Cassandra.Requests;
 
 namespace Cassandra.Metrics.Registries
 {
-    public interface IConnectionLevelMetricsRegistry
+    internal interface IConnectionLevelMetricsRegistry
     {
         void RecordBytesSent(long bytes);
         void RecordBytesReceived(long bytes);
-        IDriverTimer CqlMessages { get; }
+        IDriverTimeHandler RecordRequestLatency(IRequest request);
         IDriverCounter ConnectionInitErrors { get; }
         IDriverCounter AuthenticationErrors { get; }
     }

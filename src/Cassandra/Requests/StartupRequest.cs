@@ -17,7 +17,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-
+using Cassandra.Metrics.Registries;
 using Cassandra.Serialization;
 
 namespace Cassandra.Requests
@@ -44,5 +44,7 @@ namespace Cassandra.Requests
             }
             return wb.Close();
         }
+
+        public DriverRequestType RequestType { get; } = DriverRequestType.Startup;
     }
 }

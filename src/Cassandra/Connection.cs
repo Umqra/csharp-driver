@@ -780,7 +780,7 @@ namespace Cassandra
                 callback,
                 request,
                 timeoutMillis > 0 ? timeoutMillis : Configuration.SocketOptions.ReadTimeoutMillis,
-                _connectionLevelMetricsRegistry.CqlMessages
+                _connectionLevelMetricsRegistry.RecordRequestLatency(request)
             );
             _writeQueue.Enqueue(state);
             RunWriteQueue();

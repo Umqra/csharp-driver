@@ -15,6 +15,7 @@
 //
 
 using System.IO;
+using Cassandra.Metrics.Registries;
 using Cassandra.Serialization;
 
 namespace Cassandra.Requests
@@ -25,5 +26,10 @@ namespace Cassandra.Requests
         /// Writes the frame for this request on the provided stream
         /// </summary>
         int WriteFrame(short streamId, MemoryStream stream, Serializer serializer);
+        
+        /// <summary>
+        /// Internal representation of the request that is exposed in the query metrics path 
+        /// </summary>
+        DriverRequestType RequestType { get; }
     }
 }
