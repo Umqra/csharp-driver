@@ -44,7 +44,13 @@ namespace Cassandra
         }
 
 
-        public override DriverStatementType StatementType { get; } = DriverStatementType.Bound;
+        private DriverStatementType _statementType;
+
+        public override DriverStatementType StatementType
+        {
+            get => _statementType | DriverStatementType.Bound;
+            set => _statementType = value;
+        }
 
         /// <summary>
         ///  Gets the routing key for this bound query. <p> This method will return a

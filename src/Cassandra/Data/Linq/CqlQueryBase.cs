@@ -66,7 +66,7 @@ namespace Cassandra.Data.Linq
             get { return null; }
         }
 
-        public override DriverStatementType StatementType { get; } = DriverStatementType.Select;
+        public override DriverStatementType StatementType { get; set; } = DriverStatementType.Select;
 
         internal CqlQueryBase()
         {
@@ -96,7 +96,7 @@ namespace Cassandra.Data.Linq
         protected async Task<RowSet> InternalExecuteAsync(string cqlQuery, object[] values)
         {
             var session = GetTable().GetSession();
-            var statement = await StatementFactory.GetStatementAsync(session, Cql.New(cqlQuery, values))
+            var statement = await StatementFactory.GetStatementAsync(session, Cql.New(StatementType, cqlQuery, values))
                                              .ConfigureAwait(false);
             
             this.CopyQueryPropertiesTo(statement);

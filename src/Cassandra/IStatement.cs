@@ -31,7 +31,7 @@ namespace Cassandra
         /// <summary>
         /// Internal representation of the statement that is exposed in the query metrics path 
         /// </summary>
-        DriverStatementType StatementType { get; }
+        DriverStatementType StatementType { get; set; }
         
         /// <summary>
         /// Determines if the <see cref="RowSet"/> returned when executing this <c>IStatement</c> will automatically fetch the following result pages. Defaults to true.

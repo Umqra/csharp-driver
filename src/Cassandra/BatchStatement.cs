@@ -55,7 +55,7 @@ namespace Cassandra
             get { return _queries; }
         }
 
-        public override DriverStatementType StatementType { get; } = DriverStatementType.Batch;
+        public override DriverStatementType StatementType { get; set; } = DriverStatementType.Batch;
 
         /// <summary>
         /// Gets the routing key for the query.

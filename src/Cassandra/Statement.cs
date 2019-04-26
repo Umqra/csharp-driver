@@ -69,7 +69,7 @@ namespace Cassandra
         /// <inheritdoc />
         public DateTimeOffset? Timestamp { get; private set; }
 
-        public abstract DriverStatementType StatementType { get; }
+        public abstract DriverStatementType StatementType { get; set; }
 
         /// <inheritdoc />
         public bool AutoPage

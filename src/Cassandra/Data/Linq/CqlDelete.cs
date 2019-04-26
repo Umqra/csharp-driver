@@ -50,6 +50,6 @@ namespace Cassandra.Data.Linq
             return GetCql(out _);
         }
 
-        public override DriverStatementType StatementType { get; } = DriverStatementType.Delete;
+        public override DriverStatementType StatementType { get; set; } = DriverStatementType.Delete;
     }
 }

@@ -89,6 +89,7 @@ namespace Cassandra.Mapping.Statements
         {
             cql.QueryOptions.CopyOptionsToStatement(stmt);
             stmt.SetAutoPage(cql.AutoPage);
+            stmt.StatementType = cql.CqlStatementType;
         }
 
         public Statement GetStatement(ISession session, Cql cql)

@@ -38,7 +38,7 @@ namespace Cassandra.Data.Linq
 
         
         // todo(sivukhin, 24.04.2019): Add separate type for BatchV1?
-        public override DriverStatementType StatementType { get; } = DriverStatementType.Batch;
+        public override DriverStatementType StatementType { get; set; } = DriverStatementType.Batch;
         
         public QueryTrace QueryTrace { get; private set; }
 

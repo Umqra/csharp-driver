@@ -1,14 +1,17 @@
+using System;
+
 namespace Cassandra.Metrics.Registries
 {
+    [Flags]
     public enum DriverStatementType
     {
-        Insert,
-        Delete,
-        Update,
-        Conditional,
-        Bound,
-        Batch,
-        Select,
-        RawQuery,
+        RawQuery = 0,
+        Insert = 1,
+        Delete = 2,
+        Update = 4,
+        Conditional = 8,
+        Bound = 16,
+        Select = 32,
+        Batch = 64,
     }
 }

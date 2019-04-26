@@ -48,7 +48,7 @@ namespace Cassandra.Data.Linq
                 return TaskHelper.FromException<RowSet>(new RequestInvalidException("The Batch must contain queries to execute"));
             }
             string cqlQuery = GetCql();
-            var stmt = new SimpleStatement(cqlQuery);
+            var stmt = new SimpleStatement(cqlQuery) {StatementType = StatementType};
             this.CopyQueryPropertiesTo(stmt);
             return _session.ExecuteAsync(stmt);
         }

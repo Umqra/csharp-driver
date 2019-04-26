@@ -156,7 +156,7 @@ namespace Cassandra.Data.Linq
             object[] values;
             var cqlQuery = GetCql(out values);
             var session = GetTable().GetSession();
-            var stmt = await _statementFactory.GetStatementAsync(session, Cql.New(cqlQuery, values))
+            var stmt = await _statementFactory.GetStatementAsync(session, Cql.New(StatementType, cqlQuery, values))
                                               .ConfigureAwait(false);
             this.CopyQueryPropertiesTo(stmt);
             var rs = await session.ExecuteAsync(stmt).ConfigureAwait(false);

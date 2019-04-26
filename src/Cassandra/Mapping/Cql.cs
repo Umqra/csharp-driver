@@ -1,4 +1,5 @@
 using System;
+using Cassandra.Metrics.Registries;
 
 namespace Cassandra.Mapping
 {
@@ -7,6 +8,11 @@ namespace Cassandra.Mapping
     /// </summary>
     public class Cql
     {
+        /// <summary>
+        /// Represents underlying type of the statement   
+        /// </summary>
+        public DriverStatementType CqlStatementType { get; private set; } = DriverStatementType.RawQuery;
+        
         /// <summary>
         /// The CQL string.
         /// </summary>
@@ -30,13 +36,23 @@ namespace Cassandra.Mapping
         /// <summary>
         /// Creates a new Cql instance using the CQL string and bind variable values specified.
         /// </summary>
+        public Cql(DriverStatementType cqlStatementType, string cql, params object[] args)
+            : this(cqlStatementType, cql, args, new CqlQueryOptions())
+        {
+            
+        } 
+        
+        /// <summary>
+        /// Creates a new Cql instance using the CQL string and bind variable values specified.
+        /// </summary>
         public Cql(string cql, params object[] args)
-            : this(cql, args, new CqlQueryOptions())
+            : this(DriverStatementType.RawQuery, cql, args)
         {
         }
 
-        private Cql(string cql, object[] args, CqlQueryOptions queryOptions)
+        private Cql(DriverStatementType cqlStatementType, string cql, object[] args, CqlQueryOptions queryOptions)
         {
+            CqlStatementType = cqlStatementType;
             AutoPage = true;
             Statement = cql;
             Arguments = args;
@@ -64,6 +80,14 @@ namespace Cassandra.Mapping
         public static Cql New(string cql, params object[] args)
         {
             return new Cql(cql, args);
+        }
+        
+        /// <summary>
+        /// Creates a new CQL instance from the CQL statement and parameters specified.
+        /// </summary>
+        public static Cql New(DriverStatementType cqlStatementType, string cql, params object[] args)
+        {
+            return new Cql(cqlStatementType, cql, args);
         }
 
         internal static Cql New(string cql, object[] args, CqlQueryOptions queryOptions)

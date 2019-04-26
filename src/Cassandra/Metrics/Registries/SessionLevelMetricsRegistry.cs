@@ -13,6 +13,7 @@ namespace Cassandra.Metrics.Registries
 
         private readonly IDriverMetricsProvider _driverMetricsProvider;
         private readonly Dictionary<DriverStatementType, IRequestSessionLevelMetricsRegistry> _statementRequestLevelMetricsRegistries;
+        private readonly Dictionary<DriverStatementType, IRequestSessionLevelMetricsRegistry> _boundStatementRequestLevelMetricsRegistries;
         private IDriverGauge _connectedNodes;
 
 
@@ -20,19 +21,28 @@ namespace Cassandra.Metrics.Registries
         {
             _driverMetricsProvider = driverMetricsProvider;
             _statementRequestLevelMetricsRegistries = new Dictionary<DriverStatementType, IRequestSessionLevelMetricsRegistry>();
+            _boundStatementRequestLevelMetricsRegistries = new Dictionary<DriverStatementType, IRequestSessionLevelMetricsRegistry>();
             foreach (var driverStatementType in Enum.GetValues(typeof(DriverStatementType)).Cast<DriverStatementType>())
             {
-                var metrics = new RequestSessionLevelMetricsRegistry(
+                _statementRequestLevelMetricsRegistries[driverStatementType] = new RequestSessionLevelMetricsRegistry(
                     _driverMetricsProvider
                         .WithContext("requests")
-                        .WithContext(driverStatementType.ToString()));
-                _statementRequestLevelMetricsRegistries[driverStatementType] = metrics;
+                        .WithContext(driverStatementType.ToString())
+                );
+                _boundStatementRequestLevelMetricsRegistries[driverStatementType] = new RequestSessionLevelMetricsRegistry(
+                    _driverMetricsProvider
+                        .WithContext("requests")
+                        .WithContext("bound")
+                        .WithContext(driverStatementType.ToString())
+                );
             }
         }
 
         public IRequestSessionLevelMetricsRegistry GetRequestLevelMetrics(IStatement statement)
         {
-            return _statementRequestLevelMetricsRegistries[statement.StatementType];
+            return statement.StatementType.HasFlag(DriverStatementType.Bound)
+                ? _boundStatementRequestLevelMetricsRegistries[statement.StatementType ^ DriverStatementType.Bound]
+                : _statementRequestLevelMetricsRegistries[statement.StatementType];
         }
 
         public void InitializeSessionGauges(IInternalSession session)

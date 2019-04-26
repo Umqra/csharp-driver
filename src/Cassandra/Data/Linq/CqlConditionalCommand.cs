@@ -36,7 +36,7 @@ namespace Cassandra.Data.Linq
             object[] values;
             var cql = GetCql(out values);
             var session = GetTable().GetSession();
-            var stmt = await StatementFactory.GetStatementAsync(session, Cql.New(cql, values)).ConfigureAwait(false);
+            var stmt = await StatementFactory.GetStatementAsync(session, Cql.New(StatementType, cql, values)).ConfigureAwait(false);
             this.CopyQueryPropertiesTo(stmt);
             var rs = await session.ExecuteAsync(stmt).ConfigureAwait(false);
             return AppliedInfo<TEntity>.FromRowSet(_mapperFactory, cql, rs);
@@ -53,7 +53,7 @@ namespace Cassandra.Data.Linq
             return TaskHelper.WaitToComplete(task, queryAbortTimeout);
         }
 
-        public override DriverStatementType StatementType { get; } = DriverStatementType.Conditional;
+        public override DriverStatementType StatementType { get; set; } = DriverStatementType.Conditional;
 
         public new CqlConditionalCommand<TEntity> SetConsistencyLevel(ConsistencyLevel? consistencyLevel)
         {
