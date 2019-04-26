@@ -36,7 +36,7 @@ namespace Cassandra.Metrics.Registries
             _inFlight = poolDriverMetricsProvider.Gauge("in-flight",
                 () => hostConnectionPool.InFlight, DriverMeasurementUnit.None);
             _maxRequestsPerConnection = poolDriverMetricsProvider.Gauge("max-requests-per-connection",
-                () => hostConnectionPool.AvailableStreams, DriverMeasurementUnit.Requests);
+                () => hostConnectionPool.MaxRequestsPerConnection, DriverMeasurementUnit.Requests);
         }
 
         public void RecordRequestRetry(RetryDecision.RetryReasonType reason, RetryDecision.RetryDecisionType decision)

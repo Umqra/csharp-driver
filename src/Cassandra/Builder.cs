@@ -694,7 +694,7 @@ namespace Cassandra
                 async () => { await Task.WhenAll(metrics.ReportRunner.RunAllAsync()).ConfigureAwait(false); }
             );
             scheduler.Start();
-            return WithMetrics(new Metrics.AppMetricsImpl.AppMetricsDriverMetricsProvider(metrics));
+            return WithMetrics(new Cassandra.Metrics.AppMetricsImpl.AppMetricsDriverMetricsProvider(metrics));
         }
 #endif
 
