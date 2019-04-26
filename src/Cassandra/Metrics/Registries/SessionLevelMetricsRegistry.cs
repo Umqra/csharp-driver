@@ -26,8 +26,8 @@ namespace Cassandra.Metrics.Registries
         // todo (sivukhin, 26.04.2019): Actually, we can create necessary metrics node in advance and store it in the field of Table object 
         public IStatementLevelMetricsRegistry GetStatementMetrics(IStatement statement)
         {
-            if (statement.StatementTable == null || statement.StatementTable.IsEmpty())
-                return _defaultTableLevelMetrics.GetRequestLevelMetrics(statement.StatementType);
+            if (statement?.StatementTable?.IsEmpty() != true)
+                return _defaultTableLevelMetrics.GetRequestLevelMetrics(statement?.StatementType ?? DriverStatementType.RawQuery);
             var tableKeyProperties = statement.StatementTable;
             var tableDriverMetricsProvider = _driverMetricsProvider.WithContext(tableKeyProperties.KeyspaceName)
                                                                    .WithContext(tableKeyProperties.TableName);
