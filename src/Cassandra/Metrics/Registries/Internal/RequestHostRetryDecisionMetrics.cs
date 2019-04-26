@@ -1,6 +1,6 @@
 using Cassandra.Metrics.DriverAbstractions;
 
-namespace Cassandra.Metrics.Registries
+namespace Cassandra.Metrics.Registries.Internal
 {
     public class RequestHostRetryDecisionMetrics
     {

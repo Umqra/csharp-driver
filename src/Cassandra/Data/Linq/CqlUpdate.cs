@@ -18,7 +18,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using Cassandra.Mapping;
 using Cassandra.Mapping.Statements;
-using Cassandra.Metrics.Registries;
+using Cassandra.Metrics;
 
 namespace Cassandra.Data.Linq
 {

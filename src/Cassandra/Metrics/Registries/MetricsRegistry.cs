@@ -24,14 +24,14 @@ namespace Cassandra.Metrics.Registries
             return new HostLevelMetricsRegistry(BuildProviderForHost(host));
         }
 
-        public ISessionLevelMetricsRegistry GetSessionLevelMetrics(Session session)
+        public ISessionLevelMetricsRegistry GetSessionLevelMetrics()
         {
-            return new SessionLevelMetricsRegistry(BuildProviderForSession(session));
+            return new SessionLevelMetricsRegistry(BuildProviderForSession());
         }
 
-        public IConnectionLevelMetricsRegistry GetConnectionLevelMetrics(Host host, Session session)
+        public IConnectionLevelMetricsRegistry GetConnectionLevelMetrics(Host host)
         {
-            return new ConnectionLevelMetricsRegistry(BuildProviderForHost(host), BuildProviderForSession(session));
+            return new ConnectionLevelMetricsRegistry(BuildProviderForHost(host), BuildProviderForSession());
         }
 
         private IDriverMetricsProvider BuildProviderForCluster(Metadata clusterMetadata)
@@ -41,13 +41,14 @@ namespace Cassandra.Metrics.Registries
                    .WithContext(clusterMetadata.ClusterName ?? "unknown-cluster");
         }
 
-        private IDriverMetricsProvider BuildProviderForSession(Session session)
+        private IDriverMetricsProvider BuildProviderForSession()
         {
-            return _driverMetricsProvider.WithContext($"s_{session.GetHashCode()}");
+            return _driverMetricsProvider.WithContext("sessions");
         }
 
         private IDriverMetricsProvider BuildProviderForHost(Host host)
         {
+            // todo (sivukhin, 26.04.2019): Expose dns name of the hosts?
             var hostName = $"{host.Address.ToString().Replace('.', '_')}";
             return _driverMetricsProvider
                    .WithContext("nodes")

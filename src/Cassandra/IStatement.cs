@@ -17,7 +17,7 @@
 using System;
 using System.Collections.Generic;
 using Cassandra.Data.Linq;
-using Cassandra.Metrics.Registries;
+using Cassandra.Metrics;
 
 namespace Cassandra
 {

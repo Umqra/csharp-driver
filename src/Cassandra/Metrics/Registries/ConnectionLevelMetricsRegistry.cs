@@ -26,8 +26,6 @@ namespace Cassandra.Metrics.Registries
                                                       .WithContext("connection")
                                                       .Counter("auth", DriverMeasurementUnit.Errors);
 
-            // todo(sivukhin, 14.04.2019): Add information about keyspace/table name
-            // todo(sivukhin, 14.04.2019): Move to request-level metrics registry?
             _messageTotalLatency = hostMetricsProvider.Timer("messages", DriverMeasurementUnit.Requests);
             _cqlMessageTotalLatency = hostMetricsProvider.Timer("cql-messages", DriverMeasurementUnit.Requests);
             _messagesLatencyByRequestType = new Dictionary<DriverRequestType, IDriverTimer>();

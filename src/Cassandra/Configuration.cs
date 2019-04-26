@@ -119,7 +119,7 @@ namespace Cassandra
         
         internal IControlConnectionFactory ControlConnectionFactory { get; }
 
-        internal MetricsRegistry MetricsRegistry { get; }
+        internal IMetricsRegistry MetricsRegistry { get; }
 
         internal Configuration() :
             this(Policies.DefaultPolicies,

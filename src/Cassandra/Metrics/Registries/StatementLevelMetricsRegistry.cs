@@ -2,9 +2,9 @@ using Cassandra.Metrics.DriverAbstractions;
 
 namespace Cassandra.Metrics.Registries
 {
-    internal class RequestSessionLevelMetricsRegistry : IRequestSessionLevelMetricsRegistry
+    internal class StatementLevelMetricsRegistry : IStatementLevelMetricsRegistry
     {
-        public RequestSessionLevelMetricsRegistry(IDriverMetricsProvider driverMetricsProvider)
+        public StatementLevelMetricsRegistry(IDriverMetricsProvider driverMetricsProvider)
         {
             CqlRequests = driverMetricsProvider.Timer("cql-requests", DriverMeasurementUnit.Requests);
             CqlClientTimeouts = driverMetricsProvider.Meter("cql-client-timeouts", DriverMeasurementUnit.None);

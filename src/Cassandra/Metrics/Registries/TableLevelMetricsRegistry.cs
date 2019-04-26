@@ -5,23 +5,23 @@ using Cassandra.Metrics.DriverAbstractions;
 
 namespace Cassandra.Metrics.Registries
 {
-    internal class TableLevelMetricsRegistry
+    internal class TableLevelMetricsRegistry : ITableLevelMetricsRegistry
     {
-        private readonly Dictionary<DriverStatementType, IRequestSessionLevelMetricsRegistry> _statementRequestLevelMetricsRegistries;
-        private readonly Dictionary<DriverStatementType, IRequestSessionLevelMetricsRegistry> _boundStatementRequestLevelMetricsRegistries;
+        private readonly Dictionary<DriverStatementType, IStatementLevelMetricsRegistry> _statementRequestLevelMetricsRegistries;
+        private readonly Dictionary<DriverStatementType, IStatementLevelMetricsRegistry> _boundStatementRequestLevelMetricsRegistries;
 
         public TableLevelMetricsRegistry(IDriverMetricsProvider driverMetricsProvider)
         {
-            _statementRequestLevelMetricsRegistries = new Dictionary<DriverStatementType, IRequestSessionLevelMetricsRegistry>();
-            _boundStatementRequestLevelMetricsRegistries = new Dictionary<DriverStatementType, IRequestSessionLevelMetricsRegistry>();
+            _statementRequestLevelMetricsRegistries = new Dictionary<DriverStatementType, IStatementLevelMetricsRegistry>();
+            _boundStatementRequestLevelMetricsRegistries = new Dictionary<DriverStatementType, IStatementLevelMetricsRegistry>();
             foreach (var driverStatementType in Enum.GetValues(typeof(DriverStatementType)).Cast<DriverStatementType>())
             {
-                _statementRequestLevelMetricsRegistries[driverStatementType] = new RequestSessionLevelMetricsRegistry(
+                _statementRequestLevelMetricsRegistries[driverStatementType] = new StatementLevelMetricsRegistry(
                     driverMetricsProvider
                         .WithContext("requests")
                         .WithContext(driverStatementType.ToString())
                 );
-                _boundStatementRequestLevelMetricsRegistries[driverStatementType] = new RequestSessionLevelMetricsRegistry(
+                _boundStatementRequestLevelMetricsRegistries[driverStatementType] = new StatementLevelMetricsRegistry(
                     driverMetricsProvider
                         .WithContext("requests")
                         .WithContext("bound")
@@ -30,11 +30,12 @@ namespace Cassandra.Metrics.Registries
             }
         }
 
-        public IRequestSessionLevelMetricsRegistry GetRequestLevelMetrics(IStatement statement)
+
+        public IStatementLevelMetricsRegistry GetRequestLevelMetrics(DriverStatementType statementType)
         {
-            return statement.StatementType.HasFlag(DriverStatementType.Bound)
-                ? _boundStatementRequestLevelMetricsRegistries[statement.StatementType ^ DriverStatementType.Bound]
-                : _statementRequestLevelMetricsRegistries[statement.StatementType];
+            return statementType.HasFlag(DriverStatementType.Bound)
+                ? _boundStatementRequestLevelMetricsRegistries[statementType ^ DriverStatementType.Bound]
+                : _statementRequestLevelMetricsRegistries[statementType];
         }
     }
 }

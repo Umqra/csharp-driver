@@ -15,7 +15,7 @@
 //
 
 using System.IO;
-using Cassandra.Metrics.Registries;
+using Cassandra.Metrics;
 using Cassandra.Serialization;
 
 namespace Cassandra.Requests

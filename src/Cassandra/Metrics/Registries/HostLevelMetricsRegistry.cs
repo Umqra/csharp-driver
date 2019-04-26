@@ -1,4 +1,5 @@
 using Cassandra.Metrics.DriverAbstractions;
+using Cassandra.Metrics.Registries.Internal;
 using Cassandra.Metrics.StubImpl;
 
 namespace Cassandra.Metrics.Registries
@@ -8,6 +9,7 @@ namespace Cassandra.Metrics.Registries
         public static IHostLevelMetricsRegistry EmptyInstance = new HostLevelMetricsRegistry(EmptyDriverMetricsProvider.Instance);
 
         private readonly IDriverMetricsProvider _driverMetricsProvider;
+        private readonly RequestHostLevelMetricsRegistry _requestLevelMetricsRegistry;
         private IDriverGauge _availableStreams;
         private IDriverGauge _inFlight;
         private IDriverGauge _maxRequestsPerConnection;
@@ -16,12 +18,11 @@ namespace Cassandra.Metrics.Registries
         public HostLevelMetricsRegistry(IDriverMetricsProvider driverMetricsProvider)
         {
             _driverMetricsProvider = driverMetricsProvider;
-            RequestLevelMetricsRegistry = new RequestHostLevelMetricsRegistry(_driverMetricsProvider);
+            _requestLevelMetricsRegistry = new RequestHostLevelMetricsRegistry(_driverMetricsProvider);
             SpeculativeExecutions = _driverMetricsProvider.Counter("speculative-executions", DriverMeasurementUnit.Requests);
         }
 
         public IDriverCounter SpeculativeExecutions { get; }
-        public IRequestLevelMetricsRegistry RequestLevelMetricsRegistry { get; }
 
         public void InitializeHostConnectionPoolGauges(IHostConnectionPool hostConnectionPool)
         {
@@ -35,6 +36,11 @@ namespace Cassandra.Metrics.Registries
                 () => hostConnectionPool.InFlight, DriverMeasurementUnit.None);
             _maxRequestsPerConnection = poolDriverMetricsProvider.Gauge("max-requests-per-connection",
                 () => hostConnectionPool.AvailableStreams, DriverMeasurementUnit.Requests);
+        }
+
+        public void RecordRequestRetry(RetryDecision.RetryReasonType reason, RetryDecision.RetryDecisionType decision)
+        {
+            _requestLevelMetricsRegistry.RecordRequestRetry(reason, decision);
         }
     }
 }

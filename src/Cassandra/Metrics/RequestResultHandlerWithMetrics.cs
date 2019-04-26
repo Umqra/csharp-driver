@@ -8,14 +8,14 @@ namespace Cassandra.Metrics
     public class RequestResultHandlerWithMetrics
     {
         private readonly TaskCompletionSource<RowSet> _taskCompletionSource;
-        private readonly IRequestSessionLevelMetricsRegistry _requestSessionLevelMetricsRegistry;
+        private readonly IStatementLevelMetricsRegistry _statementLevelMetricsRegistry;
         private readonly IDriverTimeHandler _requestLatency;
 
-        public RequestResultHandlerWithMetrics(IRequestSessionLevelMetricsRegistry requestSessionLevelMetricsRegistry)
+        public RequestResultHandlerWithMetrics(IStatementLevelMetricsRegistry statementLevelMetricsRegistry)
         {
             _taskCompletionSource = new TaskCompletionSource<RowSet>();
-            _requestSessionLevelMetricsRegistry = requestSessionLevelMetricsRegistry;
-            _requestLatency = _requestSessionLevelMetricsRegistry.CqlRequests.StartRecording();
+            _statementLevelMetricsRegistry = statementLevelMetricsRegistry;
+            _requestLatency = _statementLevelMetricsRegistry.CqlRequests.StartRecording();
         }
 
         public void TrySetResult(RowSet result)
@@ -30,7 +30,7 @@ namespace Cassandra.Metrics
             _requestLatency.EndRecording();
             if (exception is OperationTimedOutException)
             {
-                _requestSessionLevelMetricsRegistry.CqlClientTimeouts.Mark(1);
+                _statementLevelMetricsRegistry.CqlClientTimeouts.Mark(1);
             }
         }
 

@@ -16,7 +16,7 @@
 
 using System;
 using System.Linq;
-using Cassandra.Metrics.Registries;
+using Cassandra.Metrics;
 using Cassandra.Requests;
 using Cassandra.Serialization;
 

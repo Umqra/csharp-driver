@@ -79,7 +79,6 @@ namespace Cassandra.Metrics.AppMetricsImpl
 
         public IDriverMetricsProvider WithContext(string context)
         {
-            // todo (sivukhin, 10.01.2019): Use more performant method instead of simple allocation of new array?
             return new AppMetricsDriverMetricsProvider(_metricsRoot, _contextComponents.Concat(new[] {FormatContext(context)}).ToArray());
         }
 

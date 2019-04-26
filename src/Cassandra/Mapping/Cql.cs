@@ -1,5 +1,5 @@
 using System;
-using Cassandra.Metrics.Registries;
+using Cassandra.Metrics;
 
 namespace Cassandra.Mapping
 {

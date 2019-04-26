@@ -97,7 +97,7 @@ namespace Cassandra
             Keyspace = keyspace;
             UserDefinedTypes = new UdtMappingDefinitions(this, serializer);
             _connectionPool = new ConcurrentDictionary<IPEndPoint, IHostConnectionPool>();
-            _sessionLevelMetricsRegistryRegistry = Configuration.MetricsRegistry.GetSessionLevelMetrics(this);
+            _sessionLevelMetricsRegistryRegistry = Configuration.MetricsRegistry.GetSessionLevelMetrics();
             _sessionLevelMetricsRegistryRegistry.InitializeSessionGauges(this);
         }
 
@@ -308,7 +308,11 @@ namespace Cassandra
         {
             var hostPool = _connectionPool.GetOrAdd(host.Address, address =>
             {
+<<<<<<< HEAD
                 var newPool = Configuration.HostConnectionPoolFactory.Create(host, Configuration, _serializer, Configuration.MetricsRegistry.GetConnectionLevelMetrics(host, this));
+=======
+                var newPool = new HostConnectionPool(host, Configuration, _serializer, Configuration.MetricsRegistry.GetConnectionLevelMetrics(host));
+>>>>>>> Make small sefactoring and clean-up
                 newPool.AllConnectionClosed += InternalRef.OnAllConnectionClosed;
                 newPool.SetDistance(distance);
                 return newPool;

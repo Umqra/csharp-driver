@@ -2,7 +2,7 @@ using Cassandra.Metrics.DriverAbstractions;
 
 namespace Cassandra.Metrics.Registries
 {
-    public interface IRequestSessionLevelMetricsRegistry
+    public interface IStatementLevelMetricsRegistry
     {
         IDriverTimer CqlRequests { get; }
         IDriverMeter CqlClientTimeouts { get; }

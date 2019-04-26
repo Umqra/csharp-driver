@@ -1,6 +1,6 @@
 using System;
 
-namespace Cassandra.Metrics.Registries
+namespace Cassandra.Metrics
 {
     [Flags]
     public enum DriverStatementType

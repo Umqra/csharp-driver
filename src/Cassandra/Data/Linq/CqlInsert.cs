@@ -19,7 +19,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Cassandra.Mapping;
 using Cassandra.Mapping.Statements;
-using Cassandra.Metrics.Registries;
+using Cassandra.Metrics;
 
 namespace Cassandra.Data.Linq
 {

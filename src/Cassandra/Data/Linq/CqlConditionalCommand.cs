@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Cassandra.Mapping;
-using Cassandra.Metrics.Registries;
+using Cassandra.Metrics;
 using Cassandra.Tasks;
 
 namespace Cassandra.Data.Linq

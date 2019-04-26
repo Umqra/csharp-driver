@@ -23,14 +23,16 @@ namespace Cassandra.Metrics.Registries
         }
 
         // todo (sivukhin, 26.04.2019): Call to ConcurrentDictionary on every request can cause poor performance
-        public IRequestSessionLevelMetricsRegistry GetRequestLevelMetrics(IStatement statement)
+        // todo (sivukhin, 26.04.2019): Actually, we can create necessary metrics node in advance and store it in the field of Table object 
+        public IStatementLevelMetricsRegistry GetStatementMetrics(IStatement statement)
         {
             if (statement.StatementTable == null || statement.StatementTable.IsEmpty())
-                return _defaultTableLevelMetrics.GetRequestLevelMetrics(statement);
+                return _defaultTableLevelMetrics.GetRequestLevelMetrics(statement.StatementType);
             var tableKeyProperties = statement.StatementTable;
-            var tableDriverMetricsProvider = _driverMetricsProvider.WithContext(tableKeyProperties.KeyspaceName).WithContext(tableKeyProperties.TableName);
+            var tableDriverMetricsProvider = _driverMetricsProvider.WithContext(tableKeyProperties.KeyspaceName)
+                                                                   .WithContext(tableKeyProperties.TableName);
             return _tableLevelMetrics.GetOrAdd(tableKeyProperties, _ => new TableLevelMetricsRegistry(tableDriverMetricsProvider))
-                                     .GetRequestLevelMetrics(statement);
+                                     .GetRequestLevelMetrics(statement.StatementType);
         }
 
         public void InitializeSessionGauges(IInternalSession session)

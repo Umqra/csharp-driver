@@ -345,8 +345,7 @@ namespace Cassandra.Requests
             var reasonAndDecision = RequestExecution.GetRetryDecisionWithReason(
                 ex, _parent.RetryPolicy, _parent.Statement, _session.Cluster.Configuration, _retryCount);
             // todo(sivukhin, 14.04.2019): Are there a situations where there is no _host available at the moment?
-            _host.HostLevelMetricsRegistry.RequestLevelMetricsRegistry.RecordRequestRetry(
-                reasonAndDecision.Item1, reasonAndDecision.Item2.DecisionType);
+            _host.HostLevelMetricsRegistry.RecordRequestRetry(reasonAndDecision.Item1, reasonAndDecision.Item2.DecisionType);
             switch (reasonAndDecision.Item2.DecisionType)
             {
                 case RetryDecision.RetryDecisionType.Rethrow:

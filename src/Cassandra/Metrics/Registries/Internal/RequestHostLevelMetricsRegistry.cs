@@ -1,8 +1,8 @@
 using Cassandra.Metrics.DriverAbstractions;
 
-namespace Cassandra.Metrics.Registries
+namespace Cassandra.Metrics.Registries.Internal
 {
-    internal class RequestHostLevelMetricsRegistry : IRequestLevelMetricsRegistry
+    internal class RequestHostLevelMetricsRegistry
     {
         private readonly RequestHostRetryDecisionMetrics _errors;
         private readonly RequestHostRetryDecisionMetrics _ignores;

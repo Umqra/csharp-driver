@@ -1,4 +1,4 @@
-namespace Cassandra.Metrics.Registries
+namespace Cassandra.Metrics
 {
     public enum DriverRequestType
     {

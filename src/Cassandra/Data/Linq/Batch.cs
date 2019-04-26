@@ -17,7 +17,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Cassandra.Metrics.Registries;
+using Cassandra.Metrics;
 using Cassandra.Tasks;
 
 namespace Cassandra.Data.Linq

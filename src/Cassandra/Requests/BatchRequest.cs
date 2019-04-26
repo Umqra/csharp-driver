@@ -18,7 +18,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using Cassandra.Metrics.Registries;
+using Cassandra.Metrics;
 using Cassandra.Serialization;
 
 namespace Cassandra.Requests

@@ -4,7 +4,7 @@ namespace Cassandra.Metrics.Registries
 {
     public interface IClusterLevelMetricsRegistry
     {
-        void InitializeClusterGauges(Metadata clusterMetadata);
         IDriverCounter ConnectedSessions { get; }
+        void InitializeClusterGauges(Metadata clusterMetadata);
     }
 }
