@@ -18,7 +18,11 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Threading.Tasks;
+using App.Metrics;
+using App.Metrics.Scheduling;
 using Cassandra.Metrics;
+using Cassandra.Metrics.AppMetricsImpl;
 using Cassandra.Metrics.DriverAbstractions;
 using Cassandra.Metrics.StubImpl;
 using Cassandra.Requests;
@@ -679,13 +683,22 @@ namespace Cassandra
             return this;
         }
 
-        // todo (sivukhin, 12.04.2019): Unify client API for all target frameworks 
-#if NETSTANDARD2_0
-        public Builder WithAppMetrics(App.Metrics.IMetricsRoot metricsRoot)
+        public Builder WithMetrics(IDriverMetricsProvider driverMetricsProvider)
         {
-            _driverMetricsProvider =
-                new Metrics.AppMetricsImpl.AppMetricsDriverMetricsProvider(metricsRoot);
+            _driverMetricsProvider = driverMetricsProvider;
             return this;
+        }
+
+#if NETSTANDARD2_0
+        public Builder WithAppMetrics(IMetricsBuilder builder)
+        {
+            // todo (sivukhin, 26.04.2019): Add more flexibility to this method (at least expose scheduler timeout)
+            var metrics = builder.Build();
+            var scheduler = new AppMetricsTaskScheduler(TimeSpan.FromSeconds(1),
+                async () => { await Task.WhenAll(metrics.ReportRunner.RunAllAsync()).ConfigureAwait(false); }
+            );
+            scheduler.Start();
+            return WithMetrics(new AppMetricsDriverMetricsProvider(metrics));
         }
 #endif
 
