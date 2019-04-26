@@ -58,12 +58,12 @@ namespace Cassandra
         /// <summary>
         /// Creates a new operation state with the provided callback
         /// </summary>
-        public OperationState(Action<Exception, Response> callback, IRequest request, int timeoutMillis, IDriverTimer operationLatency)
+        public OperationState(Action<Exception, Response> callback, IRequest request, int timeoutMillis, IDriverTimeHandler operationLatency)
         {
             Volatile.Write(ref _callback, callback);
             Request = request;
             TimeoutMillis = timeoutMillis;
-            _operationLatency = (request is ICqlRequest ? operationLatency : EmptyDriverTimer.Instance).StartRecording();
+            _operationLatency = operationLatency;
         }
 
         /// <summary>

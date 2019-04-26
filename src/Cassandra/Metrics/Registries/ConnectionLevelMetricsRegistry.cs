@@ -1,5 +1,9 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using Cassandra.Metrics.DriverAbstractions;
 using Cassandra.Metrics.StubImpl;
+using Cassandra.Requests;
 
 namespace Cassandra.Metrics.Registries
 {
@@ -24,13 +28,38 @@ namespace Cassandra.Metrics.Registries
 
             // todo(sivukhin, 14.04.2019): Add information about keyspace/table name
             // todo(sivukhin, 14.04.2019): Move to request-level metrics registry?
-            CqlMessages = hostMetricsProvider.Timer("cql-messages", DriverMeasurementUnit.Requests);
+            _messageTotalLatency = hostMetricsProvider.Timer("messages", DriverMeasurementUnit.Requests);
+            _cqlMessageTotalLatency = hostMetricsProvider.Timer("cql-messages", DriverMeasurementUnit.Requests);
+            _messagesLatencyByRequestType = new Dictionary<DriverRequestType, IDriverTimer>();
+            foreach (var requestType in Enum.GetValues(typeof(DriverRequestType)).Cast<DriverRequestType>())
+            {
+                _messagesLatencyByRequestType[requestType] = hostMetricsProvider.WithContext("types")
+                                                                                .Timer(requestType.ToString(), DriverMeasurementUnit.Requests);
+            }
+        }
+
+        public IDriverTimeHandler RecordRequestLatency(IRequest request)
+        {
+            return request.RequestType.IsCqlRequest()
+                ? new CompositeTimeHandler(
+                    _messageTotalLatency.StartRecording(),
+                    _cqlMessageTotalLatency.StartRecording(),
+                    _messagesLatencyByRequestType[request.RequestType].StartRecording()
+                )
+                : new CompositeTimeHandler(
+                    _messageTotalLatency.StartRecording(),
+                    _messagesLatencyByRequestType[request.RequestType].StartRecording()
+                );
         }
 
         private IDriverCounter BytesSentForHost { get; }
         private IDriverCounter BytesReceivedForHost { get; }
         private IDriverCounter BytesSentForSession { get; }
         private IDriverCounter BytesReceivedForSession { get; }
+        private readonly Dictionary<DriverRequestType, IDriverTimer> _messagesLatencyByRequestType;
+        private readonly IDriverTimer _messageTotalLatency;
+        private readonly IDriverTimer _cqlMessageTotalLatency;
+
 
         public void RecordBytesSent(long bytes)
         {
@@ -44,7 +73,6 @@ namespace Cassandra.Metrics.Registries
             BytesReceivedForSession.Increment(bytes);
         }
 
-        public IDriverTimer CqlMessages { get; }
         public IDriverCounter ConnectionInitErrors { get; }
         public IDriverCounter AuthenticationErrors { get; }
     }

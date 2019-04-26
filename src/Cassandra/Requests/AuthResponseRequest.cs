@@ -15,6 +15,7 @@
 //
 
 using System.IO;
+using Cassandra.Metrics.Registries;
 using Cassandra.Serialization;
 
 namespace Cassandra.Requests
@@ -36,5 +37,7 @@ namespace Cassandra.Requests
             wb.WriteBytes(_token);
             return wb.Close();
         }
+
+        public DriverRequestType RequestType { get; } = DriverRequestType.AuthResponse;
     }
 }

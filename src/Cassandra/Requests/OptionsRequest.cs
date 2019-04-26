@@ -15,6 +15,7 @@
 //
 
 using System.IO;
+using Cassandra.Metrics.Registries;
 using Cassandra.Serialization;
 
 namespace Cassandra.Requests
@@ -29,5 +30,7 @@ namespace Cassandra.Requests
             wb.WriteFrameHeader(0x00, streamId, OpCode);
             return wb.Close();
         }
+
+        public DriverRequestType RequestType { get; } = DriverRequestType.Options;
     }
 }
