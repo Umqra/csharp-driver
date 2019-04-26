@@ -1,6 +1,6 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
+using System.Collections.Concurrent;
+using Cassandra.Data.Linq;
 using Cassandra.Metrics.DriverAbstractions;
 using Cassandra.Metrics.StubImpl;
 using Cassandra.SessionManagement;
@@ -12,42 +12,31 @@ namespace Cassandra.Metrics.Registries
         public static readonly ISessionLevelMetricsRegistry EmptyInstance = new SessionLevelMetricsRegistry(EmptyDriverMetricsProvider.Instance);
 
         private readonly IDriverMetricsProvider _driverMetricsProvider;
-        private readonly Dictionary<DriverStatementType, IRequestSessionLevelMetricsRegistry> _statementRequestLevelMetricsRegistries;
-        private readonly Dictionary<DriverStatementType, IRequestSessionLevelMetricsRegistry> _boundStatementRequestLevelMetricsRegistries;
-        private IDriverGauge _connectedNodes;
-
+        private readonly ConcurrentDictionary<TableKeyProperties, TableLevelMetricsRegistry> _tableLevelMetrics;
+        private readonly TableLevelMetricsRegistry _defaultTableLevelMetrics;
 
         public SessionLevelMetricsRegistry(IDriverMetricsProvider driverMetricsProvider)
         {
             _driverMetricsProvider = driverMetricsProvider;
-            _statementRequestLevelMetricsRegistries = new Dictionary<DriverStatementType, IRequestSessionLevelMetricsRegistry>();
-            _boundStatementRequestLevelMetricsRegistries = new Dictionary<DriverStatementType, IRequestSessionLevelMetricsRegistry>();
-            foreach (var driverStatementType in Enum.GetValues(typeof(DriverStatementType)).Cast<DriverStatementType>())
-            {
-                _statementRequestLevelMetricsRegistries[driverStatementType] = new RequestSessionLevelMetricsRegistry(
-                    _driverMetricsProvider
-                        .WithContext("requests")
-                        .WithContext(driverStatementType.ToString())
-                );
-                _boundStatementRequestLevelMetricsRegistries[driverStatementType] = new RequestSessionLevelMetricsRegistry(
-                    _driverMetricsProvider
-                        .WithContext("requests")
-                        .WithContext("bound")
-                        .WithContext(driverStatementType.ToString())
-                );
-            }
+            _defaultTableLevelMetrics = new TableLevelMetricsRegistry(driverMetricsProvider);
+            _tableLevelMetrics = new ConcurrentDictionary<TableKeyProperties, TableLevelMetricsRegistry>();
         }
 
+        // todo (sivukhin, 26.04.2019): Call to ConcurrentDictionary on every request can cause poor performance
         public IRequestSessionLevelMetricsRegistry GetRequestLevelMetrics(IStatement statement)
         {
-            return statement.StatementType.HasFlag(DriverStatementType.Bound)
-                ? _boundStatementRequestLevelMetricsRegistries[statement.StatementType ^ DriverStatementType.Bound]
-                : _statementRequestLevelMetricsRegistries[statement.StatementType];
+            if (statement.StatementTable == null || statement.StatementTable.IsEmpty())
+                return _defaultTableLevelMetrics.GetRequestLevelMetrics(statement);
+            var tableKeyProperties = statement.StatementTable;
+            var tableDriverMetricsProvider = _driverMetricsProvider.WithContext(tableKeyProperties.KeyspaceName).WithContext(tableKeyProperties.TableName);
+            return _tableLevelMetrics.GetOrAdd(tableKeyProperties, _ => new TableLevelMetricsRegistry(tableDriverMetricsProvider))
+                                     .GetRequestLevelMetrics(statement);
         }
 
         public void InitializeSessionGauges(IInternalSession session)
         {
-            _connectedNodes = _driverMetricsProvider.Gauge("connected-nodes", () => session.GetAllConnections().Count, DriverMeasurementUnit.None);
+            var sessionMetricsProvider = _driverMetricsProvider.WithContext($"s_{session.GetHashCode()}");
+            sessionMetricsProvider.Gauge("connected-nodes", () => session.GetAllConnections().Count, DriverMeasurementUnit.None);
         }
     }
 }
