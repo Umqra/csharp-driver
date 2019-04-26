@@ -42,7 +42,7 @@ namespace Cassandra
             get { return _query; }
         }
 
-        public override DriverStatementType StatementType { get; } = DriverStatementType.Unknown;
+        public override DriverStatementType StatementType { get; } = DriverStatementType.RawQuery;
 
         /// <summary>
         /// Gets the routing key for the query.

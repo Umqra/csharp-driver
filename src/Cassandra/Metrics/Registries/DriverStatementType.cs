@@ -9,6 +9,6 @@ namespace Cassandra.Metrics.Registries
         Bound,
         Batch,
         Select,
-        Unknown,
+        RawQuery,
     }
 }
