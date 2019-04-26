@@ -19,10 +19,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
-using App.Metrics;
-using App.Metrics.Scheduling;
-using Cassandra.Metrics;
-using Cassandra.Metrics.AppMetricsImpl;
 using Cassandra.Metrics.DriverAbstractions;
 using Cassandra.Metrics.StubImpl;
 using Cassandra.Requests;
@@ -142,7 +138,7 @@ namespace Cassandra
                 _addressTranslator,
                 _startupOptionsFactory,
                 _sessionFactoryBuilder,
-                _driverMetricsProvider);
+                driverMetricsProvider: _driverMetricsProvider);
             if (_typeSerializerDefinitions != null)
             {
                 config.TypeSerializers = _typeSerializerDefinitions.Definitions;
@@ -690,15 +686,15 @@ namespace Cassandra
         }
 
 #if NETSTANDARD2_0
-        public Builder WithAppMetrics(IMetricsBuilder builder)
+        public Builder WithAppMetrics(App.Metrics.IMetricsBuilder builder)
         {
             // todo (sivukhin, 26.04.2019): Add more flexibility to this method (at least expose scheduler timeout)
             var metrics = builder.Build();
-            var scheduler = new AppMetricsTaskScheduler(TimeSpan.FromSeconds(1),
+            var scheduler = new App.Metrics.Scheduling.AppMetricsTaskScheduler(TimeSpan.FromSeconds(1),
                 async () => { await Task.WhenAll(metrics.ReportRunner.RunAllAsync()).ConfigureAwait(false); }
             );
             scheduler.Start();
-            return WithMetrics(new AppMetricsDriverMetricsProvider(metrics));
+            return WithMetrics(new Metrics.AppMetricsImpl.AppMetricsDriverMetricsProvider(metrics));
         }
 #endif
 

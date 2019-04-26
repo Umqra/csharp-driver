@@ -1,3 +1,4 @@
+using Cassandra.Connections;
 using Cassandra.Metrics.DriverAbstractions;
 using Cassandra.Metrics.Registries.Internal;
 using Cassandra.Metrics.StubImpl;

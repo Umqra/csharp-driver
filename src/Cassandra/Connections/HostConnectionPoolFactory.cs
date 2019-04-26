@@ -22,7 +22,7 @@ namespace Cassandra.Connections
     {
         public IHostConnectionPool Create(Host host, Configuration config, Serializer serializer)
         {
-            return new HostConnectionPool(host, config, serializer);
+            return new HostConnectionPool(host, config, serializer, config.MetricsRegistry.GetConnectionLevelMetrics(host));
         }
     }
 }
